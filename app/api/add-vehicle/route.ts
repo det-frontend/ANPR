@@ -8,31 +8,43 @@ export async function POST(request: NextRequest) {
 
     const {
       orderNumber,
-      customerLevel1,
-      customerLevel2,
+      companyName,
+      customerName,
       orderDate,
-      queueNumber,
       truckNumber,
       trailerNumber,
       driverName,
       driverPhoneNumber,
-      dam_capacity,
+      numberOfDrums,
+      amountInLiters,
+      tankNumber,
     } = body;
 
     // Validation
     if (
       !orderNumber ||
-      !customerLevel1 ||
-      !customerLevel2 ||
+      !companyName ||
+      !customerName ||
       !orderDate ||
       !truckNumber ||
-      !driverName
+      !driverName ||
+      numberOfDrums === undefined ||
+      amountInLiters === undefined ||
+      tankNumber === undefined
     ) {
       return NextResponse.json(
         {
           error:
-            "Missing required fields: orderNumber, customerLevel1, customerLevel2, orderDate, truckNumber, driverName",
+            "Missing required fields: orderNumber, companyName, customerName, orderDate, truckNumber, driverName, numberOfDrums, amountInLiters, tankNumber",
         },
+        { status: 400 }
+      );
+    }
+
+    // Validate tank number (1-6)
+    if (tankNumber < 1 || tankNumber > 6) {
+      return NextResponse.json(
+        { error: "Tank number must be between 1 and 6" },
         { status: 400 }
       );
     }
@@ -47,17 +59,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Create new vehicle
-    const vehicleData: Omit<Vehicle, "_id" | "createdAt" | "updatedAt"> = {
+    const vehicleData: Omit<
+      Vehicle,
+      "_id" | "createdAt" | "updatedAt" | "queueNumber"
+    > = {
       orderNumber,
-      customerLevel1,
-      customerLevel2,
+      companyName,
+      customerName,
       orderDate: orderDate ? new Date(orderDate) : new Date(),
-      queueNumber: queueNumber || "",
       truckNumber,
       trailerNumber: trailerNumber || "",
       driverName,
       driverPhoneNumber: driverPhoneNumber || "",
-      dam_capacity: dam_capacity || "",
+      numberOfDrums: Number(numberOfDrums),
+      amountInLiters: Number(amountInLiters),
+      tankNumber: Number(tankNumber),
     };
 
     const newVehicle = await VehicleDB.addVehicle(vehicleData);

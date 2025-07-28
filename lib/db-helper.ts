@@ -3,22 +3,54 @@ import { ObjectId } from "mongodb";
 
 export interface Vehicle {
   _id?: ObjectId;
+  queueNumber: string; // Auto generated, reset by day
   orderNumber: string;
-  customerLevel1: string;
-  customerLevel2: string;
   orderDate: Date;
-  queueNumber: string;
+  companyName: string; // Changed from customerLevel1
+  customerName: string; // Changed from customerLevel2
   truckNumber: string;
   trailerNumber: string;
   driverName: string;
   driverPhoneNumber: string;
-  dam_capacity: string;
+  numberOfDrums: number; // Changed from dam_capacity
+  amountInLiters: number; // New field
+  tankNumber: number; // New field (1-6)
   createdAt: Date;
   updatedAt: Date;
 }
 
 export class VehicleDB {
   private static collectionName = "vehicles";
+
+  // Generate queue number based on current date
+  static async generateQueueNumber(): Promise<string> {
+    try {
+      const db = await getDatabase();
+      const collection = db.collection<Vehicle>(this.collectionName);
+
+      const today = new Date();
+      const startOfDay = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate()
+      );
+      const endOfDay = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate() + 1
+      );
+
+      const todayCount = await collection.countDocuments({
+        createdAt: { $gte: startOfDay, $lt: endOfDay },
+      });
+
+      const queueNumber = `Q${String(todayCount + 1).padStart(3, "0")}`;
+      return queueNumber;
+    } catch (error) {
+      console.error("Error generating queue number:", error);
+      throw error;
+    }
+  }
 
   static async findByPlate(truckNumber: string): Promise<Vehicle | null> {
     try {
@@ -37,14 +69,21 @@ export class VehicleDB {
   }
 
   static async addVehicle(
-    vehicleData: Omit<Vehicle, "_id" | "createdAt" | "updatedAt">
+    vehicleData: Omit<
+      Vehicle,
+      "_id" | "createdAt" | "updatedAt" | "queueNumber"
+    >
   ): Promise<Vehicle> {
     try {
       const db = await getDatabase();
       const collection = db.collection<Vehicle>(this.collectionName);
 
+      // Generate queue number
+      const queueNumber = await this.generateQueueNumber();
+
       const vehicle: Omit<Vehicle, "_id"> = {
         ...vehicleData,
+        queueNumber,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -63,10 +102,18 @@ export class VehicleDB {
 
   static async getAllVehicles(): Promise<Vehicle[]> {
     try {
+      console.log("VehicleDB.getAllVehicles() called");
       const db = await getDatabase();
+      console.log("Database connection established");
       const collection = db.collection<Vehicle>(this.collectionName);
+      console.log("Collection accessed:", this.collectionName);
 
-      return await collection.find({}).sort({ createdAt: -1 }).toArray();
+      const vehicles = await collection
+        .find({})
+        .sort({ createdAt: -1 })
+        .toArray();
+      console.log("Found vehicles:", vehicles.length);
+      return vehicles;
     } catch (error) {
       console.error("Error getting all vehicles:", error);
       throw error;

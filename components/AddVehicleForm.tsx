@@ -25,15 +25,16 @@ export default function AddVehicleForm({
 }: AddVehicleFormProps) {
   const [formData, setFormData] = useState({
     orderNumber: "",
-    customerLevel1: "",
-    customerLevel2: "",
+    companyName: "",
+    customerName: "",
     orderDate: new Date().toISOString().slice(0, 16),
-    queueNumber: "",
-    truckNumber: "",
+    truckNumber: plateNumber,
     trailerNumber: "",
     driverName: "",
     driverPhoneNumber: "",
-    dam_capacity: "",
+    numberOfDrums: "",
+    amountInLiters: "",
+    tankNumber: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -49,7 +50,12 @@ export default function AddVehicleForm({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          numberOfDrums: Number(formData.numberOfDrums),
+          amountInLiters: Number(formData.amountInLiters),
+          tankNumber: Number(formData.tankNumber),
+        }),
       });
 
       const data = await response.json();
@@ -96,28 +102,28 @@ export default function AddVehicleForm({
               />
             </div>
             <div>
-              <Label htmlFor="customerLevel1" className="text-gray-300">
-                Customer Level 1 *
+              <Label htmlFor="companyName" className="text-gray-300">
+                Company Name *
               </Label>
               <Input
-                id="customerLevel1"
-                value={formData.customerLevel1}
+                id="companyName"
+                value={formData.companyName}
                 onChange={(e) =>
-                  setFormData({ ...formData, customerLevel1: e.target.value })
+                  setFormData({ ...formData, companyName: e.target.value })
                 }
                 className="bg-gray-700 border-gray-600 text-white"
                 required
               />
             </div>
             <div>
-              <Label htmlFor="customerLevel2" className="text-gray-300">
-                Customer Level 2 *
+              <Label htmlFor="customerName" className="text-gray-300">
+                Customer Name *
               </Label>
               <Input
-                id="customerLevel2"
-                value={formData.customerLevel2}
+                id="customerName"
+                value={formData.customerName}
                 onChange={(e) =>
-                  setFormData({ ...formData, customerLevel2: e.target.value })
+                  setFormData({ ...formData, customerName: e.target.value })
                 }
                 className="bg-gray-700 border-gray-600 text-white"
                 required
@@ -136,19 +142,6 @@ export default function AddVehicleForm({
                 }
                 className="bg-gray-700 border-gray-600 text-white"
                 required
-              />
-            </div>
-            <div>
-              <Label htmlFor="queueNumber" className="text-gray-300">
-                Queue Number
-              </Label>
-              <Input
-                id="queueNumber"
-                value={formData.queueNumber}
-                onChange={(e) =>
-                  setFormData({ ...formData, queueNumber: e.target.value })
-                }
-                className="bg-gray-700 border-gray-600 text-white"
               />
             </div>
             <div>
@@ -209,17 +202,60 @@ export default function AddVehicleForm({
               />
             </div>
             <div>
-              <Label htmlFor="dam_capacity" className="text-gray-300">
-                Dam Capacity
+              <Label htmlFor="numberOfDrums" className="text-gray-300">
+                No. Drum *
               </Label>
               <Input
-                id="dam_capacity"
-                value={formData.dam_capacity}
+                id="numberOfDrums"
+                type="number"
+                value={formData.numberOfDrums}
                 onChange={(e) =>
-                  setFormData({ ...formData, dam_capacity: e.target.value })
+                  setFormData({ ...formData, numberOfDrums: e.target.value })
                 }
                 className="bg-gray-700 border-gray-600 text-white"
+                required
               />
+            </div>
+            <div>
+              <Label htmlFor="amountInLiters" className="text-gray-300">
+                Amount in (liter) *
+              </Label>
+              <Input
+                id="amountInLiters"
+                type="number"
+                value={formData.amountInLiters}
+                onChange={(e) =>
+                  setFormData({ ...formData, amountInLiters: e.target.value })
+                }
+                className="bg-gray-700 border-gray-600 text-white"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="tankNumber" className="text-gray-300">
+                Tank No *
+              </Label>
+              <Select
+                value={formData.tankNumber}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, tankNumber: value })
+                }
+              >
+                <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                  <SelectValue placeholder="Select tank number" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-700 border-gray-600">
+                  {[1, 2, 3, 4, 5, 6].map((tank) => (
+                    <SelectItem
+                      key={tank}
+                      value={tank.toString()}
+                      className="text-white"
+                    >
+                      Tank {tank}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -234,11 +270,14 @@ export default function AddVehicleForm({
             disabled={
               isSubmitting ||
               !formData.orderNumber ||
-              !formData.customerLevel1 ||
-              !formData.customerLevel2 ||
+              !formData.companyName ||
+              !formData.customerName ||
               !formData.orderDate ||
               !formData.truckNumber ||
-              !formData.driverName
+              !formData.driverName ||
+              !formData.numberOfDrums ||
+              !formData.amountInLiters ||
+              !formData.tankNumber
             }
             className="w-full bg-green-600 hover:bg-green-700"
           >

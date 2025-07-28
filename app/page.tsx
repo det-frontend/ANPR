@@ -1,24 +1,36 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Shield, Database, Activity } from 'lucide-react';
-import PlateInput from '@/components/PlateInput';
-import VehicleInfo from '@/components/VehicleInfo';
-import AddVehicleForm from '@/components/AddVehicleForm';
-import RecentVehicles from '@/components/RecentVehicles';
+import { useState, useEffect } from "react";
+import { Shield, Database, Activity } from "lucide-react";
+import PlateInput from "@/components/PlateInput";
+import VehicleInfo from "@/components/VehicleInfo";
+import AddVehicleForm from "@/components/AddVehicleForm";
+import RecentVehicles from "@/components/RecentVehicles";
 
 interface Vehicle {
   _id: string;
-  plateNumber: string;
-  ownerName: string;
-  vehicleType: 'truck' | 'car' | 'motorcycle' | 'van';
-  entryTime: string;
-  remarks: string;
+  queueNumber?: string;
+  orderNumber?: string;
+  orderDate?: string;
+  companyName?: string;
+  customerName?: string;
+  truckNumber: string;
+  trailerNumber?: string;
+  driverName: string;
+  driverPhoneNumber?: string;
+  numberOfDrums?: number;
+  amountInLiters?: number;
+  tankNumber?: number;
   createdAt: string;
+  updatedAt?: string;
+  // Legacy fields for backward compatibility
+  customerLevel1?: string;
+  customerLevel2?: string;
+  dam_capacity?: string;
 }
 
 export default function Home() {
-  const [currentPlate, setCurrentPlate] = useState('');
+  const [currentPlate, setCurrentPlate] = useState("");
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -29,12 +41,12 @@ export default function Home() {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
 
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
     };
   }, []);
 
@@ -45,7 +57,9 @@ export default function Home() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`/api/check-plate?plate=${encodeURIComponent(plate)}`);
+      const response = await fetch(
+        `/api/check-plate?plate=${encodeURIComponent(plate)}`
+      );
       const data = await response.json();
 
       if (data.exists) {
@@ -54,7 +68,7 @@ export default function Home() {
         setShowAddForm(true);
       }
     } catch (error) {
-      console.error('Error checking plate:', error);
+      console.error("Error checking plate:", error);
     } finally {
       setIsLoading(false);
     }
@@ -66,7 +80,7 @@ export default function Home() {
   };
 
   const resetView = () => {
-    setCurrentPlate('');
+    setCurrentPlate("");
     setVehicle(null);
     setShowAddForm(false);
   };
@@ -80,22 +94,45 @@ export default function Home() {
             <div className="flex items-center gap-3">
               <Shield className="h-8 w-8 text-blue-400" />
               <div>
-                <h1 className="text-2xl font-bold text-white">CCTV ANPR System</h1>
-                <p className="text-gray-400 text-sm">Automatic Number Plate Recognition</p>
+                <h1 className="text-2xl font-bold text-white">
+                  CCTV ANPR System
+                </h1>
+                <p className="text-gray-400 text-sm">
+                  Automatic Number Plate Recognition
+                </p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <Database className="h-4 w-4 text-green-400" />
                 <span className="text-sm text-gray-300">MongoDB Connected</span>
               </div>
-              
+
               <div className="flex items-center gap-2">
-                <Activity className={`h-4 w-4 ${isOnline ? 'text-green-400' : 'text-red-400'}`} />
+                <Activity
+                  className={`h-4 w-4 ${
+                    isOnline ? "text-green-400" : "text-red-400"
+                  }`}
+                />
                 <span className="text-sm text-gray-300">
-                  {isOnline ? 'Online' : 'Offline'}
+                  {isOnline ? "Online" : "Offline"}
                 </span>
+              </div>
+
+              <div className="flex gap-2">
+                <a
+                  href="/dashboard"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                >
+                  View Dashboard
+                </a>
+                <a
+                  href="/test"
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                >
+                  Test APIs
+                </a>
               </div>
             </div>
           </div>
@@ -107,15 +144,18 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Input and Results */}
           <div className="lg:col-span-2 space-y-6">
-            <PlateInput onPlateSubmit={handlePlateSubmit} isLoading={isLoading} />
-            
+            <PlateInput
+              onPlateSubmit={handlePlateSubmit}
+              isLoading={isLoading}
+            />
+
             {isLoading && (
               <div className="bg-gray-800 p-8 rounded-lg text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
                 <p className="text-gray-300">Checking plate: {currentPlate}</p>
               </div>
             )}
-            
+
             {vehicle && (
               <div className="space-y-4">
                 <VehicleInfo vehicle={vehicle} />
@@ -127,7 +167,7 @@ export default function Home() {
                 </button>
               </div>
             )}
-            
+
             {showAddForm && (
               <div className="space-y-4">
                 <AddVehicleForm
@@ -143,11 +183,11 @@ export default function Home() {
               </div>
             )}
           </div>
-          
+
           {/* Right Column - Recent Vehicles */}
           <div className="space-y-6">
             <RecentVehicles />
-            
+
             {/* System Status */}
             <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
               <h3 className="text-white font-semibold mb-3">System Status</h3>
@@ -162,7 +202,9 @@ export default function Home() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">Last Update:</span>
-                  <span className="text-gray-300">{new Date().toLocaleTimeString()}</span>
+                  <span className="text-gray-300">
+                    {new Date().toLocaleTimeString()}
+                  </span>
                 </div>
               </div>
             </div>
