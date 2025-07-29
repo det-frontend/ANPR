@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
+import SidebarWrapper from "../components/SidebarWrapper";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -16,9 +17,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className} suppressHydrationWarning={true}>
-        <AuthProvider>{children}</AuthProvider>
+    <html lang="en" className="h-full">
+      <body className="h-full m-0" suppressHydrationWarning={true}>
+        <AuthProvider>
+          <SidebarWrapper>{children}</SidebarWrapper>
+        </AuthProvider>
       </body>
     </html>
   );

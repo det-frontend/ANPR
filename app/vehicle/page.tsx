@@ -39,7 +39,7 @@ interface Vehicle {
   dam_capacity?: string;
 }
 
-export default function Home() {
+export default function VehiclePage() {
   const [currentPlate, setCurrentPlate] = useState("");
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -102,7 +102,7 @@ export default function Home() {
   };
 
   return (
-    <ProtectedRoute allowedRoles={["client", "manager", "admin"]}>
+    <ProtectedRoute allowedRoles={["manager", "admin"]}>
       <div className="min-h-screen bg-gray-900">
         {/* Header */}
         <header className="bg-gray-800 shadow-lg border-b border-gray-700">
@@ -112,10 +112,10 @@ export default function Home() {
                 <Shield className="h-8 w-8 text-blue-400" />
                 <div>
                   <h1 className="text-2xl font-bold text-white">
-                    CCTV ANPR System
+                    Vehicle Management
                   </h1>
                   <p className="text-gray-400 text-sm">
-                    Automatic Number Plate Recognition
+                    Vehicle Registration and Tracking
                   </p>
                 </div>
               </div>
@@ -130,7 +130,15 @@ export default function Home() {
                 </div>
 
                 {/* Navigation based on role */}
-                {(user?.role === "manager" || user?.role === "admin") && (
+                {/* <a
+                  href="/"
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                >
+                  <Activity className="h-4 w-4" />
+                  Entry
+                </a> */}
+
+                {/* {(user?.role === "manager" || user?.role === "admin") && (
                   <a
                     href="/dashboard"
                     className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
@@ -138,7 +146,17 @@ export default function Home() {
                     <BarChart3 className="h-4 w-4" />
                     Dashboard
                   </a>
-                )}
+                )} */}
+
+                {/* {user?.role === "admin" && (
+                  <a
+                    href="/user"
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                  >
+                    <User className="h-4 w-4" />
+                    Users
+                  </a>
+                )} */}
 
                 {/* Logout Button */}
                 <Button

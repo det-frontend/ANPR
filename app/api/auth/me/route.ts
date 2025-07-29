@@ -9,20 +9,28 @@ export async function GET(request: NextRequest) {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get("auth-token");
+    console.log("ME ROUTE: token from cookie:", token);
 
     if (!token) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
     // Verify JWT token
-    const decoded = verify(token.value, JWT_SECRET) as any;
+    let decoded;
+    try {
+      decoded = verify(token.value, JWT_SECRET);
+      console.log("ME ROUTE: decoded JWT:", decoded);
+    } catch (err) {
+      console.log("ME ROUTE: JWT verification failed:", err);
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    }
 
-    if (!decoded || !decoded.userId) {
+    if (!decoded || !(decoded as any).userId) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
     // Get user from database
-    const user = await AuthService.getUserById(decoded.userId);
+    const user = await AuthService.getUserById((decoded as any).userId);
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });

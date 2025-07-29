@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  allowedRoles?: ("client" | "manager")[];
+  allowedRoles?: ("client" | "manager" | "admin")[];
   redirectTo?: string;
 }
 
