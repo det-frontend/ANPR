@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { PlusCircle, Save, Truck, Printer, X, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +43,12 @@ export default function AddVehicleForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+
+  // Autocomplete state
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,7 +124,72 @@ export default function AddVehicleForm({
     });
     setError("");
     setCopied(false);
+    setSuggestions([]);
+    setShowSuggestions(false);
   };
+
+  // Search vehicles for autocomplete
+  const searchVehicles = async (query: string) => {
+    if (!query || query.trim().length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const response = await fetch(
+        `/api/search-vehicles?q=${encodeURIComponent(query)}`
+      );
+      const data = await response.json();
+
+      if (response.ok && data.vehicles) {
+        setSuggestions(data.vehicles);
+        setShowSuggestions(data.vehicles.length > 0);
+      } else {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
+    } catch (error) {
+      console.error("Error searching vehicles:", error);
+      setSuggestions([]);
+      setShowSuggestions(false);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Handle suggestion selection
+  const handleSuggestionSelect = (vehicle: any) => {
+    setFormData({
+      ...formData,
+      truckNumber: vehicle.truckNumber,
+      trailerNumber: vehicle.trailerNumber || "",
+      driverName: vehicle.driverName,
+      driverPhoneNumber: vehicle.driverPhoneNumber || "",
+      companyName: vehicle.companyName,
+      customerName: vehicle.customerName,
+    });
+    setShowSuggestions(false);
+    setSuggestions([]);
+  };
+
+  // Handle clicks outside suggestions
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   return (
     <Card className="bg-gray-800 border-gray-700">
@@ -209,20 +280,72 @@ export default function AddVehicleForm({
                 required
               />
             </div>
-            <div>
+            <div className="relative">
               <Label htmlFor="truckNumber" className="text-gray-300">
                 Truck Number *
               </Label>
               <Input
                 id="truckNumber"
                 value={formData.truckNumber}
-                onChange={(e) =>
-                  setFormData({ ...formData, truckNumber: e.target.value })
-                }
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, truckNumber: value });
+                  searchVehicles(value);
+                }}
+                onFocus={() => {
+                  if (formData.truckNumber && suggestions.length > 0) {
+                    setShowSuggestions(true);
+                  }
+                }}
                 placeholder="Enter truck number"
                 className="bg-gray-700 border-gray-600 text-white"
                 required
               />
+
+              {/* Autocomplete Suggestions */}
+              {showSuggestions && (
+                <div
+                  ref={suggestionsRef}
+                  className="absolute z-50 w-full mt-1 bg-gray-700 border border-gray-600 rounded-md shadow-lg max-h-60 overflow-y-auto"
+                >
+                  {isSearching ? (
+                    <div className="p-3 text-center text-gray-400">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400 mx-auto"></div>
+                      <span className="ml-2">Searching...</span>
+                    </div>
+                  ) : suggestions.length > 0 ? (
+                    suggestions.map((vehicle, index) => (
+                      <div
+                        key={vehicle._id || index}
+                        onClick={() => handleSuggestionSelect(vehicle)}
+                        className="p-3 hover:bg-gray-600 cursor-pointer border-b border-gray-600 last:border-b-0"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-white font-medium">
+                              {vehicle.truckNumber}
+                            </div>
+                            <div className="text-gray-400 text-sm">
+                              Driver: {vehicle.driverName}
+                            </div>
+                            <div className="text-gray-400 text-sm">
+                              Company: {vehicle.companyName}
+                            </div>
+                          </div>
+                          <div className="text-gray-500 text-xs">
+                            {vehicle.trailerNumber &&
+                              `Trailer: ${vehicle.trailerNumber}`}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-3 text-center text-gray-400">
+                      No matching vehicles found
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <div>
               <Label htmlFor="trailerNumber" className="text-gray-300">

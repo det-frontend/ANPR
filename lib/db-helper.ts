@@ -74,6 +74,26 @@ export class VehicleDB {
     }
   }
 
+  static async searchVehiclesByTruckNumber(query: string): Promise<Vehicle[]> {
+    try {
+      const db = await getDatabase();
+      const collection = db.collection<Vehicle>(this.collectionName);
+
+      const vehicles = await collection
+        .find({
+          truckNumber: { $regex: new RegExp(query, "i") },
+        })
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .toArray();
+
+      return vehicles;
+    } catch (error) {
+      console.error("Error searching vehicles by truck number:", error);
+      throw error;
+    }
+  }
+
   static async addVehicle(
     vehicleData: Omit<Vehicle, "_id" | "createdAt" | "updatedAt"> & {
       queueNumber?: string;

@@ -14,6 +14,7 @@ import {
   TrendingUp,
   Users,
   Truck,
+  X,
 } from "lucide-react";
 import {
   Card,
@@ -378,7 +379,7 @@ export default function VehiclePage() {
                     <span className="hidden sm:inline">Export CSV</span>
                     <span className="sm:hidden">Export</span>
                   </Button>
-                  <Button
+                  {/* <Button
                     onClick={handleLogout}
                     variant="outline"
                     className="border-gray-600 text-gray-300 hover:bg-gray-700 text-xs sm:text-sm px-3 py-2"
@@ -386,7 +387,7 @@ export default function VehiclePage() {
                     <LogOut className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                     <span className="hidden sm:inline">Logout</span>
                     <span className="sm:hidden">Logout</span>
-                  </Button>
+                  </Button> */}
                 </div>
               </div>
             </div>
@@ -562,28 +563,15 @@ export default function VehiclePage() {
                 </div>
               </div>
 
-              {/* <div className="flex gap-2 mt-4">
-                <Button
-                  variant={sortOrder === "desc" ? "default" : "outline"}
-                  onClick={() => setSortOrder("desc")}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  Descending
-                </Button>
-                <Button
-                  variant={sortOrder === "asc" ? "default" : "outline"}
-                  onClick={() => setSortOrder("asc")}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  Ascending
-                </Button>
+              <div className="flex gap-2 mt-4">
                 <Button
                   onClick={clearFilters}
-                  className="bg-orange-600 hover:bg-orange-700"
+                  className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
                 >
+                  <X className="h-4 w-4 mr-2" />
                   Clear Filters
                 </Button>
-              </div> */}
+              </div>
             </CardContent>
           </Card>
 

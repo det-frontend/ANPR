@@ -67,7 +67,7 @@ const Sidebar = ({
       `}
     >
       {/* Logo/Title and Toggle */}
-      <div className="flex items-center justify-between mb-8 px-4 py-4">
+      <div className="flex items-center justify-between mb-2 px-4 py-4">
         {!collapsed && (
           <span className="text-xl font-bold tracking-wide text-white">
             ANPR
