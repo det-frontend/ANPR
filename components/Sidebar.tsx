@@ -16,7 +16,7 @@ import {
 const links = [
   {
     href: "/",
-    label: "Entry",
+    label: "New Entry",
     icon: <FiHome />,
     roles: ["client", "manager", "admin"],
   },

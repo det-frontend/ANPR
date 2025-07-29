@@ -83,14 +83,14 @@ export default function AddVehicleForm({
   const handleSaveAndPrint = async () => {
     // First save the vehicle, then print
     await handleSubmit(new Event("submit") as any);
-    if (!error) {
-      handlePrint();
-    }
+    // if (!error) {
+    //   handlePrint();
+    // }
   };
 
   return (
     <Card className="bg-gray-800 border-gray-700">
-      <CardHeader>
+      {/* <CardHeader>
         <CardTitle className="text-yellow-400 flex items-center gap-2">
           <PlusCircle className="h-5 w-5" />
           New Vehicle Registration
@@ -98,10 +98,10 @@ export default function AddVehicleForm({
         <p className="text-gray-400 text-sm">
           Vehicle not found in database. Please add vehicle information.
         </p>
-      </CardHeader>
+      </CardHeader> */}
 
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 pt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="orderNumber" className="text-gray-300">
@@ -282,7 +282,7 @@ export default function AddVehicleForm({
           )}
 
           {/* First row of buttons */}
-          <div className="flex gap-4">
+          {/* <div className="flex gap-4">
             <Button
               type="submit"
               disabled={
@@ -310,7 +310,7 @@ export default function AddVehicleForm({
               <Printer className="h-4 w-4 mr-2" />
               Print
             </Button>
-          </div>
+          </div> */}
 
           {/* Second row of buttons */}
           <div className="space-y-2">
@@ -332,7 +332,7 @@ export default function AddVehicleForm({
               className="w-full bg-blue-500 hover:bg-blue-600"
             >
               <Save className="h-4 w-4 mr-2" />
-              Save and Print
+              Submit
             </Button>
             {/* <Button
               type="button"

@@ -9,8 +9,6 @@ import {
   User,
   BarChart3,
 } from "lucide-react";
-import PlateInput from "@/components/PlateInput";
-import VehicleInfo from "@/components/VehicleInfo";
 import AddVehicleForm from "@/components/AddVehicleForm";
 import RecentVehicles from "@/components/RecentVehicles";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -40,10 +38,7 @@ interface Vehicle {
 }
 
 export default function Home() {
-  const [currentPlate, setCurrentPlate] = useState("");
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
 
   const { user, logout } = useAuth();
@@ -62,39 +57,12 @@ export default function Home() {
     };
   }, []);
 
-  const handlePlateSubmit = async (plate: string) => {
-    setCurrentPlate(plate);
-    setVehicle(null);
-    setShowAddForm(false);
-    setIsLoading(true);
-
-    try {
-      const response = await fetch(
-        `/api/check-plate?plate=${encodeURIComponent(plate)}`
-      );
-      const data = await response.json();
-
-      if (data.exists) {
-        setVehicle(data.vehicle);
-      } else {
-        setShowAddForm(true);
-      }
-    } catch (error) {
-      console.error("Error checking plate:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleVehicleAdded = (newVehicle: Vehicle) => {
     setVehicle(newVehicle);
-    setShowAddForm(false);
   };
 
   const resetView = () => {
-    setCurrentPlate("");
     setVehicle(null);
-    setShowAddForm(false);
   };
 
   const handleLogout = async () => {
@@ -130,7 +98,7 @@ export default function Home() {
                 </div>
 
                 {/* Navigation based on role */}
-                {(user?.role === "manager" || user?.role === "admin") && (
+                {/* {(user?.role === "manager" || user?.role === "admin") && (
                   <a
                     href="/dashboard"
                     className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
@@ -138,7 +106,7 @@ export default function Home() {
                     <BarChart3 className="h-4 w-4" />
                     Dashboard
                   </a>
-                )}
+                )} */}
 
                 {/* Logout Button */}
                 <Button
@@ -157,45 +125,33 @@ export default function Home() {
         {/* Main Content */}
         <main className="max-w-7xl mx-auto px-4 py-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left Column - Input and Results */}
+            {/* Left Column - New Vehicle Registration */}
             <div className="lg:col-span-2 space-y-6">
-              <PlateInput
-                onPlateSubmit={handlePlateSubmit}
-                isLoading={isLoading}
-              />
-
-              {isLoading && (
-                <div className="bg-gray-800 p-8 rounded-lg text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
-                  <p className="text-gray-300">
-                    Checking plate: {currentPlate}
-                  </p>
-                </div>
-              )}
+              <div>
+                {/* <h2 className="text-xl font-semibold text-gray-200 mb-4">
+                  New Entry
+                </h2> */}
+                <AddVehicleForm
+                  plateNumber=""
+                  onVehicleAdded={handleVehicleAdded}
+                />
+              </div>
 
               {vehicle && (
                 <div className="space-y-4">
-                  <VehicleInfo vehicle={vehicle} />
+                  <div className="bg-green-900 border border-green-700 rounded-lg p-4">
+                    <h3 className="text-lg font-semibold text-green-200 mb-2">
+                      Vehicle Registered Successfully!
+                    </h3>
+                    <p className="text-green-300">
+                      The vehicle has been added to the system.
+                    </p>
+                  </div>
                   <button
                     onClick={resetView}
                     className="w-full bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition-colors"
                   >
-                    Check Another Plate
-                  </button>
-                </div>
-              )}
-
-              {showAddForm && (
-                <div className="space-y-4">
-                  <AddVehicleForm
-                    plateNumber={currentPlate}
-                    onVehicleAdded={handleVehicleAdded}
-                  />
-                  <button
-                    onClick={resetView}
-                    className="w-full bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition-colors"
-                  >
-                    Cancel
+                    Register Another Vehicle
                   </button>
                 </div>
               )}
