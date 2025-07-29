@@ -343,7 +343,7 @@ export default function Dashboard() {
 
                 {/* Action Buttons */}
                 <div className="flex gap-2">
-                  <Button
+                  {/* <Button
                     onClick={loadSampleData}
                     className="bg-green-600 hover:bg-green-700"
                     disabled={isLoading}
@@ -362,7 +362,7 @@ export default function Dashboard() {
                     className="bg-orange-600 hover:bg-orange-700"
                   >
                     Clear Filters
-                  </Button>
+                  </Button> */}
                   <Button
                     onClick={exportToCSV}
                     className="bg-blue-600 hover:bg-blue-700"

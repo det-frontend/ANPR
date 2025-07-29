@@ -77,7 +77,7 @@ export default function AddVehicleForm({
   const handlePrint = () => {
     // Print functionality - you can implement this based on your needs
     // window.print();
-    console.log
+    console.log('print')
   };
 
   const handleSaveAndPrint = async () => {
