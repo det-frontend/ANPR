@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       // Only secure in production, not on localhost
       secure: process.env.NODE_ENV === "production" ? true : false,
-      sameSite: "strict",\
+      sameSite: "strict",
       maxAge: 24 * 60 * 60, // 24 hours
       path: "/", // Ensure cookie is sent on all routes
     });
