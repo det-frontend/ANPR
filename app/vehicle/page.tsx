@@ -42,60 +42,54 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { DatePickerWithRange } from "@/components/DateRangePicker";
-import AddVehicleForm from "@/components/AddVehicleForm";
-import VehicleDetailsModal from "@/components/VehicleDetailsModal";
+import VehicleInfoForm from "@/components/VehicleInfoForm";
+import VehicleInfoDetailsModal from "@/components/VehicleInfoDetailsModal";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
 import { addDays, format, startOfDay, endOfDay, parseISO } from "date-fns";
 import { DateRange } from "react-day-picker";
 
-interface Vehicle {
+interface VehicleInfo {
   _id: string;
-  queueNumber?: string;
-  orderNumber?: string;
-  orderDate?: string;
-  companyName?: string;
-  customerName?: string;
-  truckNumber: string;
-  trailerNumber?: string;
+  vehicleNumber: string;
   driverName: string;
-  driverPhoneNumber?: string;
-  numberOfDrums?: number;
-  amountInLiters?: number;
-  tankNumber?: number;
+  driverPhone: string;
+  trailerNumber: string;
+  customerName: string;
+  companyName: string;
   createdAt: string;
-  updatedAt?: string;
-  // Legacy fields for backward compatibility
-  customerLevel1?: string;
-  customerLevel2?: string;
-  dam_capacity?: string;
+  updatedAt: string;
 }
 
 export default function VehiclePage() {
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [filteredVehicles, setFilteredVehicles] = useState<Vehicle[]>([]);
+  const [vehicles, setVehicles] = useState<VehicleInfo[]>([]);
+  const [filteredVehicles, setFilteredVehicles] = useState<VehicleInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dateRange, setDateRange] = useState<DateRange>({
-    from: startOfDay(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)), // 30 days ago
+    from: startOfDay(new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)), // 1 year ago
     to: endOfDay(new Date()),
   });
   const [searchTerm, setSearchTerm] = useState("");
   const [companyFilter, setCompanyFilter] = useState("all");
   const [sortBy, setSortBy] = useState("createdAt");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
-  const [newVehicle, setNewVehicle] = useState<Vehicle | null>(null);
+  const [selectedVehicle, setSelectedVehicle] = useState<VehicleInfo | null>(
+    null
+  );
+  const [newVehicle, setNewVehicle] = useState<VehicleInfo | null>(null);
   const [isOnline, setIsOnline] = useState(true);
 
   const { user, logout } = useAuth();
 
   // Load vehicles on component mount
   useEffect(() => {
+    console.log("Component mounted, fetching vehicles...");
     fetchVehicles();
   }, []);
 
   // Apply filters when data or filters change
   useEffect(() => {
+    console.log("useEffect triggered - vehicles length:", vehicles.length);
     applyFilters();
   }, [vehicles, dateRange, searchTerm, companyFilter, sortBy, sortOrder]);
 
@@ -120,19 +114,26 @@ export default function VehiclePage() {
   const fetchVehicles = async () => {
     try {
       setIsLoading(true);
-      console.log("Fetching vehicles...");
-      const response = await fetch("/api/vehicles");
+      console.log("Fetching vehicle info...");
+      const response = await fetch("/api/vehicle-info");
       console.log("Response status:", response.status);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      console.log("Fetched vehicles:", data);
+      console.log("Fetched vehicle info:", data);
       console.log("Vehicles array:", data.vehicles);
       console.log("Vehicles length:", data.vehicles?.length || 0);
-      setVehicles(data.vehicles || []);
+
+      if (data.vehicles && Array.isArray(data.vehicles)) {
+        console.log("Setting vehicles:", data.vehicles);
+        setVehicles(data.vehicles);
+      } else {
+        console.log("No vehicles array found, setting empty array");
+        setVehicles([]);
+      }
     } catch (error) {
-      console.error("Error fetching vehicles:", error);
+      console.error("Error fetching vehicle info:", error);
       setVehicles([]);
     } finally {
       setIsLoading(false);
@@ -147,41 +148,26 @@ export default function VehiclePage() {
     if (dateRange.from && dateRange.to) {
       console.log("Date range filter:", dateRange.from, "to", dateRange.to);
       filtered = filtered.filter((vehicle) => {
-        const vehicleDate = vehicle.orderDate
-          ? parseISO(vehicle.orderDate)
-          : new Date(vehicle.createdAt);
+        const vehicleDate = new Date(vehicle.createdAt);
         const isInRange =
           vehicleDate >= dateRange.from! && vehicleDate <= dateRange.to!;
-        console.log(
-          "Vehicle",
-          vehicle.truckNumber,
-          "date:",
-          vehicleDate,
-          "in range:",
-          isInRange
-        );
         return isInRange;
       });
       console.log("After date filter:", filtered.length, "vehicles");
     }
 
     // Search term filter
-    if (searchTerm) {
+    if (searchTerm.trim()) {
       console.log("Search term filter:", searchTerm);
+      const searchLower = searchTerm.toLowerCase().trim();
       filtered = filtered.filter(
         (vehicle) =>
-          vehicle.truckNumber
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          vehicle.driverName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          vehicle.orderNumber
-            ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          false ||
-          vehicle.companyName
-            ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          false
+          vehicle.vehicleNumber.toLowerCase().includes(searchLower) ||
+          vehicle.driverName.toLowerCase().includes(searchLower) ||
+          vehicle.driverPhone.toLowerCase().includes(searchLower) ||
+          vehicle.trailerNumber.toLowerCase().includes(searchLower) ||
+          vehicle.customerName.toLowerCase().includes(searchLower) ||
+          vehicle.companyName.toLowerCase().includes(searchLower)
       );
       console.log("After search filter:", filtered.length, "vehicles");
     }
@@ -197,12 +183,16 @@ export default function VehiclePage() {
 
     // Sorting
     filtered.sort((a, b) => {
-      let aValue: any = a[sortBy as keyof Vehicle];
-      let bValue: any = b[sortBy as keyof Vehicle];
+      let aValue: any = a[sortBy as keyof VehicleInfo];
+      let bValue: any = b[sortBy as keyof VehicleInfo];
 
-      if (sortBy === "orderDate" || sortBy === "createdAt") {
+      if (sortBy === "createdAt") {
         aValue = new Date(aValue || new Date()).getTime();
         bValue = new Date(bValue || new Date()).getTime();
+      } else {
+        // For string fields, convert to lowercase for consistent sorting
+        if (typeof aValue === "string") aValue = aValue.toLowerCase();
+        if (typeof bValue === "string") bValue = bValue.toLowerCase();
       }
 
       if (sortOrder === "asc") {
@@ -218,7 +208,7 @@ export default function VehiclePage() {
 
   const getUniqueCompanies = () => {
     const companies = vehicles
-      .map((v) => v.companyName || v.customerLevel1 || "Unknown")
+      .map((v) => v.companyName || "Unknown")
       .filter(Boolean);
     return ["all", ...Array.from(new Set(companies))];
   };
@@ -228,15 +218,11 @@ export default function VehiclePage() {
     const uniqueDrivers = new Set(filteredVehicles.map((v) => v.driverName))
       .size;
     const uniqueCompanies = new Set(
-      filteredVehicles.map(
-        (v) => v.companyName || v.customerLevel1 || "Unknown"
-      )
+      filteredVehicles.map((v) => v.companyName || "Unknown")
     ).size;
     const todayVehicles = filteredVehicles.filter((v) => {
       const today = new Date();
-      const vehicleDate = v.orderDate
-        ? new Date(v.orderDate)
-        : new Date(v.createdAt);
+      const vehicleDate = new Date(v.createdAt);
       return vehicleDate.toDateString() === today.toDateString();
     }).length;
 
@@ -245,7 +231,7 @@ export default function VehiclePage() {
 
   const clearFilters = () => {
     setDateRange({
-      from: startOfDay(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)),
+      from: startOfDay(new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)),
       to: endOfDay(new Date()),
     });
     setSearchTerm("");
@@ -256,18 +242,12 @@ export default function VehiclePage() {
 
   const exportToCSV = () => {
     const headers = [
-      "Queue Number",
-      "Order Number",
-      "Company Name",
-      "Customer Name",
-      "Order Date",
-      "Truck Number",
-      "Trailer Number",
+      "Vehicle Number",
       "Driver Name",
       "Driver Phone",
-      "No. Drum",
-      "Amount in (liter)",
-      "Tank No",
+      "Trailer Number",
+      "Customer Name",
+      "Company Name",
       "Created At",
     ];
 
@@ -275,18 +255,12 @@ export default function VehiclePage() {
       headers.join(","),
       ...filteredVehicles.map((vehicle) =>
         [
-          vehicle.queueNumber,
-          vehicle.orderNumber,
-          vehicle.companyName,
-          vehicle.customerName,
-          vehicle.orderDate,
-          vehicle.truckNumber,
-          vehicle.trailerNumber,
+          vehicle.vehicleNumber,
           vehicle.driverName,
-          vehicle.driverPhoneNumber,
-          vehicle.numberOfDrums,
-          vehicle.amountInLiters,
-          vehicle.tankNumber,
+          vehicle.driverPhone,
+          vehicle.trailerNumber,
+          vehicle.customerName,
+          vehicle.companyName,
           vehicle.createdAt,
         ].join(",")
       ),
@@ -296,12 +270,12 @@ export default function VehiclePage() {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `vehicle-data-${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.download = `vehicle-info-${format(new Date(), "yyyy-MM-dd")}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
   };
 
-  const handleVehicleAdded = (newVehicle: Vehicle) => {
+  const handleVehicleAdded = (newVehicle: VehicleInfo) => {
     setNewVehicle(newVehicle);
     // Refresh the vehicles list
     fetchVehicles();
@@ -311,6 +285,50 @@ export default function VehiclePage() {
     setNewVehicle(null);
   };
 
+  const loadSampleData = async () => {
+    try {
+      const response = await fetch("/api/vehicle-info/seed", {
+        method: "POST",
+      });
+
+      if (response.ok) {
+        // Refresh the vehicles list
+        fetchVehicles();
+        alert("Sample data loaded successfully!");
+      } else {
+        alert("Failed to load sample data");
+      }
+    } catch (error) {
+      console.error("Error loading sample data:", error);
+      alert("Error loading sample data");
+    }
+  };
+
+  const clearAllData = async () => {
+    if (
+      confirm(
+        "Are you sure you want to clear all vehicle data? This action cannot be undone."
+      )
+    ) {
+      try {
+        const response = await fetch("/api/vehicle-info/seed", {
+          method: "DELETE",
+        });
+
+        if (response.ok) {
+          // Refresh the vehicles list
+          fetchVehicles();
+          alert("All data cleared successfully!");
+        } else {
+          alert("Failed to clear data");
+        }
+      } catch (error) {
+        console.error("Error clearing data:", error);
+        alert("Error clearing data");
+      }
+    }
+  };
+
   const stats = getStats();
 
   return (
@@ -318,58 +336,56 @@ export default function VehiclePage() {
       <div className="min-h-screen bg-gray-900">
         {/* Header */}
         <header className="bg-gray-800 shadow-lg border-b border-gray-700">
-          <div className="max-w-7xl mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Shield className="h-8 w-8 text-blue-400" />
-                <div>
-                  <h1 className="text-2xl font-bold text-white">
-                    Vehicle Management
+          <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4">
+            <div className="flex flex-col sm:flex-row items-center sm:items-center justify-between gap-3 sm:gap-4">
+              {/* Logo and Title Section */}
+              <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-center sm:justify-start">
+                <Shield className="h-7 w-7 sm:h-8 sm:w-8 text-blue-400 flex-shrink-0" />
+                <div className="text-center sm:text-left min-w-0">
+                  <h1 className="text-xl sm:text-xl md:text-2xl font-bold text-white truncate">
+                    Vehicle Information Management
                   </h1>
-                  <p className="text-gray-400 text-sm">
-                    Vehicle Registration and Tracking
+                  <p className="text-gray-400 text-xs sm:text-sm truncate">
+                    Vehicle Information Registration and Database
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4">
+              {/* User Info and Actions Section */}
+              <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full sm:w-auto">
                 {/* User Info */}
-                <div className="flex items-center gap-2 text-gray-300">
-                  <User className="h-4 w-4" />
-                  <span className="text-sm">
-                    {user?.name} ({user?.role})
-                  </span>
+                <div className="hidden sm:flex items-center justify-center sm:justify-end w-full sm:w-auto">
+                  <div className="flex items-center gap-2 text-gray-300 bg-gray-700/50 px-3 py-2 rounded-lg">
+                    <User className="h-4 w-4 text-blue-400" />
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:gap-1">
+                      <span className="text-sm font-medium text-white">
+                        {user?.name}
+                      </span>
+                      <span className="text-xs text-gray-400 sm:text-sm">
+                        ({user?.role})
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex gap-2">
-                  {/* <Button
-                    onClick={fetchVehicles}
-                    className="bg-gray-600 hover:bg-gray-700"
-                    disabled={isLoading}
-                  >
-                    Refresh
-                  </Button>
-                  <Button
-                    onClick={clearFilters}
-                    className="bg-orange-600 hover:bg-orange-700"
-                  >
-                    Clear Filters
-                  </Button>
+                <div className="flex gap-2 w-full sm:w-auto justify-center sm:justify-end">
                   <Button
                     onClick={exportToCSV}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="bg-blue-600 hover:bg-blue-700 text-xs sm:text-sm px-3 py-2"
                   >
-                    <Download className="h-4 w-4 mr-2" />
-                    Export CSV
-                  </Button> */}
+                    <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">Export CSV</span>
+                    <span className="sm:hidden">Export</span>
+                  </Button>
                   <Button
                     onClick={handleLogout}
                     variant="outline"
-                    className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                    className="border-gray-600 text-gray-300 hover:bg-gray-700 text-xs sm:text-sm px-3 py-2"
                   >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Logout
+                    <LogOut className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">Logout</span>
+                    <span className="sm:hidden">Logout</span>
                   </Button>
                 </div>
               </div>
@@ -443,35 +459,27 @@ export default function VehiclePage() {
           </div> */}
 
           {/* New Vehicle Registration */}
-          <Card className="bg-gray-800 border-gray-700 mb-8">
-            {/* <CardHeader>
-              <CardTitle className="text-white">Register New Vehicle</CardTitle>
-            </CardHeader> */}
-            <CardContent>
-              <AddVehicleForm
-                plateNumber=""
-                onVehicleAdded={handleVehicleAdded}
-              />
-              {newVehicle && (
-                <div className="mt-4 space-y-4">
-                  <div className="bg-green-900 border border-green-700 rounded-lg p-4">
-                    <h3 className="text-lg font-semibold text-green-200 mb-2">
-                      Vehicle Registered Successfully!
-                    </h3>
-                    <p className="text-green-300">
-                      The vehicle has been added to the system.
-                    </p>
-                  </div>
-                  <button
-                    onClick={resetView}
-                    className="w-full bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition-colors"
-                  >
-                    Register Another Vehicle
-                  </button>
+          <div className="mb-8">
+            <VehicleInfoForm onVehicleAdded={handleVehicleAdded} />
+            {newVehicle && (
+              <div className="mt-4 space-y-4">
+                <div className="bg-green-900 border border-green-700 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold text-green-200 mb-2">
+                    Vehicle Registered Successfully!
+                  </h3>
+                  <p className="text-green-300">
+                    The vehicle has been added to the system.
+                  </p>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+                <button
+                  onClick={resetView}
+                  className="w-full bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition-colors"
+                >
+                  Register Another Vehicle
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* Filters */}
           <Card className="bg-gray-800 border-gray-700 mb-8">
@@ -494,7 +502,7 @@ export default function VehiclePage() {
                 <div className="space-y-2">
                   <Label className="text-gray-300">Search</Label>
                   <Input
-                    placeholder="Search trucks, drivers, orders..."
+                    placeholder="Search vehicles, drivers, phones, customers..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="bg-gray-700 border-gray-600 text-white"
@@ -534,24 +542,27 @@ export default function VehiclePage() {
                       <SelectItem value="createdAt" className="text-white">
                         Created Date
                       </SelectItem>
-                      <SelectItem value="orderDate" className="text-white">
-                        Order Date
-                      </SelectItem>
-                      <SelectItem value="truckNumber" className="text-white">
-                        Truck Number
+                      <SelectItem value="vehicleNumber" className="text-white">
+                        Vehicle Number
                       </SelectItem>
                       <SelectItem value="driverName" className="text-white">
                         Driver Name
                       </SelectItem>
+                      <SelectItem value="driverPhone" className="text-white">
+                        Driver Phone
+                      </SelectItem>
                       <SelectItem value="companyName" className="text-white">
                         Company
+                      </SelectItem>
+                      <SelectItem value="customerName" className="text-white">
+                        Customer
                       </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
-              <div className="flex gap-2 mt-4">
+              {/* <div className="flex gap-2 mt-4">
                 <Button
                   variant={sortOrder === "desc" ? "default" : "outline"}
                   onClick={() => setSortOrder("desc")}
@@ -566,16 +577,25 @@ export default function VehiclePage() {
                 >
                   Ascending
                 </Button>
-              </div>
+                <Button
+                  onClick={clearFilters}
+                  className="bg-orange-600 hover:bg-orange-700"
+                >
+                  Clear Filters
+                </Button>
+              </div> */}
             </CardContent>
           </Card>
 
           {/* Data Table */}
           <Card className="bg-gray-800 border-gray-700">
             <CardHeader>
-              <CardTitle className="text-white">Vehicle Entries</CardTitle>
+              <CardTitle className="text-white">
+                Vehicle Information Database
+              </CardTitle>
               <CardDescription className="text-gray-400">
-                Showing {filteredVehicles.length} of {vehicles.length} vehicles
+                Showing {filteredVehicles.length} of {vehicles.length} vehicle
+                records
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -591,25 +611,22 @@ export default function VehiclePage() {
                   <Table className="w-full">
                     <TableHeader>
                       <TableRow className="border-gray-700">
-                        <TableHead className="text-gray-300">Queue #</TableHead>
-                        <TableHead className="text-gray-300">Order #</TableHead>
-                        <TableHead className="text-gray-300">Company</TableHead>
                         <TableHead className="text-gray-300">
-                          Customer
+                          Vehicle #
                         </TableHead>
                         <TableHead className="text-gray-300">
-                          Order Date
+                          Driver Name
                         </TableHead>
-                        <TableHead className="text-gray-300">Truck #</TableHead>
-                        <TableHead className="text-gray-300">Driver</TableHead>
+                        <TableHead className="text-gray-300">
+                          Driver Phone
+                        </TableHead>
                         <TableHead className="text-gray-300">
                           Trailer #
                         </TableHead>
-                        <TableHead className="text-gray-300">Drums</TableHead>
                         <TableHead className="text-gray-300">
-                          Amount (L)
+                          Customer
                         </TableHead>
-                        <TableHead className="text-gray-300">Tank</TableHead>
+                        <TableHead className="text-gray-300">Company</TableHead>
                         <TableHead className="text-gray-300">Created</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -623,84 +640,30 @@ export default function VehiclePage() {
                           <TableCell>
                             <Badge
                               variant="secondary"
-                              className="bg-blue-600 text-white"
+                              className="bg-green-600 text-white"
                             >
-                              {vehicle.queueNumber || "N/A"}
+                              {vehicle.vehicleNumber}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-white font-medium">
-                            {vehicle.orderNumber || "N/A"}
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <div className="text-white">
-                                {vehicle.companyName ||
-                                  vehicle.customerLevel1 ||
-                                  "N/A"}
-                              </div>
-                              <div className="text-gray-400 text-sm">
-                                {vehicle.customerName ||
-                                  vehicle.customerLevel2 ||
-                                  "N/A"}
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-gray-300">
-                            {vehicle.customerName ||
-                              vehicle.customerLevel2 ||
-                              "N/A"}
-                          </TableCell>
-                          <TableCell className="text-gray-300">
-                            {vehicle.orderDate
-                              ? format(
-                                  parseISO(vehicle.orderDate),
-                                  "MMM dd, yyyy"
-                                )
-                              : format(
-                                  parseISO(vehicle.createdAt),
-                                  "MMM dd, yyyy"
-                                )}
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant="secondary"
-                              className="bg-green-600 text-white"
-                            >
-                              {vehicle.truckNumber}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <div className="text-white">
-                                {vehicle.driverName}
-                              </div>
-                              <div className="text-gray-400 text-sm">
-                                {vehicle.driverPhoneNumber || "N/A"}
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-gray-300">
-                            {vehicle.trailerNumber || "-"}
-                          </TableCell>
-                          <TableCell className="text-gray-300">
-                            {vehicle.numberOfDrums ||
-                              vehicle.dam_capacity ||
-                              "N/A"}
-                          </TableCell>
-                          <TableCell className="text-gray-300">
-                            {vehicle.amountInLiters
-                              ? vehicle.amountInLiters.toLocaleString()
-                              : "N/A"}
+                            {vehicle.driverName}
                           </TableCell>
                           <TableCell>
                             <Badge
                               variant="outline"
                               className="text-white border-gray-500"
                             >
-                              {vehicle.tankNumber
-                                ? `Tank ${vehicle.tankNumber}`
-                                : "N/A"}
+                              {vehicle.driverPhone}
                             </Badge>
+                          </TableCell>
+                          <TableCell className="text-gray-300">
+                            {vehicle.trailerNumber}
+                          </TableCell>
+                          <TableCell className="text-gray-300">
+                            {vehicle.customerName}
+                          </TableCell>
+                          <TableCell className="text-gray-300">
+                            {vehicle.companyName}
                           </TableCell>
                           <TableCell className="text-gray-300">
                             {format(
@@ -751,7 +714,7 @@ export default function VehiclePage() {
         </main>
 
         {/* Vehicle Details Modal */}
-        <VehicleDetailsModal
+        <VehicleInfoDetailsModal
           vehicle={selectedVehicle}
           isOpen={!!selectedVehicle}
           onClose={() => setSelectedVehicle(null)}

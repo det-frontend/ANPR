@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { PlusCircle, Save, Truck, Printer, X } from "lucide-react";
+import { PlusCircle, Save, Truck, Printer, X, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,11 +17,13 @@ import { Label } from "@/components/ui/label";
 
 interface AddVehicleFormProps {
   plateNumber: string;
+  queueNumber: string;
   onVehicleAdded: (vehicle: any) => void;
   onCancel?: () => void;
 }
 export default function AddVehicleForm({
   plateNumber,
+  queueNumber,
   onVehicleAdded,
   onCancel,
 }: AddVehicleFormProps) {
@@ -40,6 +42,7 @@ export default function AddVehicleForm({
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,6 +57,7 @@ export default function AddVehicleForm({
         },
         body: JSON.stringify({
           ...formData,
+          queueNumber,
           numberOfDrums: Number(formData.numberOfDrums),
           amountInLiters: Number(formData.amountInLiters),
           tankNumber: Number(formData.tankNumber),
@@ -77,7 +81,7 @@ export default function AddVehicleForm({
   const handlePrint = () => {
     // Print functionality - you can implement this based on your needs
     // window.print();
-    console.log('print')
+    console.log("print");
   };
 
   const handleSaveAndPrint = async () => {
@@ -86,6 +90,34 @@ export default function AddVehicleForm({
     // if (!error) {
     //   handlePrint();
     // }
+  };
+
+  const handleCopyQueueNumber = async () => {
+    try {
+      await navigator.clipboard.writeText(queueNumber);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000); // Reset after 2 seconds
+    } catch (error) {
+      console.error("Failed to copy queue number:", error);
+    }
+  };
+
+  const handleClearForm = () => {
+    setFormData({
+      orderNumber: "",
+      companyName: "",
+      customerName: "",
+      orderDate: new Date().toISOString().slice(0, 16),
+      truckNumber: plateNumber,
+      trailerNumber: "",
+      driverName: "",
+      driverPhoneNumber: "",
+      numberOfDrums: "",
+      amountInLiters: "",
+      tankNumber: "",
+    });
+    setError("");
+    setCopied(false);
   };
 
   return (
@@ -104,6 +136,35 @@ export default function AddVehicleForm({
         <form onSubmit={handleSubmit} className="space-y-4 pt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
+              <Label htmlFor="queueNumber" className="text-gray-300">
+                Queue Number
+              </Label>
+              <div className="relative">
+                <Input
+                  id="queueNumber"
+                  value={queueNumber}
+                  disabled
+                  className="bg-gray-600 border-gray-500 text-gray-300 cursor-text select-all pr-10"
+                  placeholder="Auto-generated queue number"
+                  readOnly
+                />
+                <Button
+                  type="button"
+                  onClick={handleCopyQueueNumber}
+                  size="sm"
+                  variant="ghost"
+                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-gray-500"
+                  title="Copy queue number"
+                >
+                  {copied ? (
+                    <Check className="h-4 w-4 text-green-400" />
+                  ) : (
+                    <Copy className="h-4 w-4 text-gray-400" />
+                  )}
+                </Button>
+              </div>
+            </div>
+            <div>
               <Label htmlFor="orderNumber" className="text-gray-300">
                 Order Number *
               </Label>
@@ -113,6 +174,7 @@ export default function AddVehicleForm({
                 onChange={(e) =>
                   setFormData({ ...formData, orderNumber: e.target.value })
                 }
+                placeholder="Enter order number"
                 className="bg-gray-700 border-gray-600 text-white"
                 required
               />
@@ -127,6 +189,7 @@ export default function AddVehicleForm({
                 onChange={(e) =>
                   setFormData({ ...formData, companyName: e.target.value })
                 }
+                placeholder="Enter company name"
                 className="bg-gray-700 border-gray-600 text-white"
                 required
               />
@@ -141,6 +204,85 @@ export default function AddVehicleForm({
                 onChange={(e) =>
                   setFormData({ ...formData, customerName: e.target.value })
                 }
+                placeholder="Enter customer name"
+                className="bg-gray-700 border-gray-600 text-white"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="truckNumber" className="text-gray-300">
+                Truck Number *
+              </Label>
+              <Input
+                id="truckNumber"
+                value={formData.truckNumber}
+                onChange={(e) =>
+                  setFormData({ ...formData, truckNumber: e.target.value })
+                }
+                placeholder="Enter truck number"
+                className="bg-gray-700 border-gray-600 text-white"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="trailerNumber" className="text-gray-300">
+                Trailer Number
+              </Label>
+              <Input
+                id="trailerNumber"
+                value={formData.trailerNumber}
+                onChange={(e) =>
+                  setFormData({ ...formData, trailerNumber: e.target.value })
+                }
+                placeholder="Enter trailer number (optional)"
+                className="bg-gray-700 border-gray-600 text-white"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="driverName" className="text-gray-300">
+                Driver Name *
+              </Label>
+              <Input
+                id="driverName"
+                value={formData.driverName}
+                onChange={(e) =>
+                  setFormData({ ...formData, driverName: e.target.value })
+                }
+                placeholder="Enter driver name"
+                className="bg-gray-700 border-gray-600 text-white"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="driverPhoneNumber" className="text-gray-300">
+                Driver Phone Number
+              </Label>
+              <Input
+                id="driverPhoneNumber"
+                value={formData.driverPhoneNumber}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    driverPhoneNumber: e.target.value,
+                  })
+                }
+                placeholder="Enter driver phone number (optional)"
+                className="bg-gray-700 border-gray-600 text-white"
+              />
+            </div>
+            <div>
+              <Label htmlFor="numberOfDrums" className="text-gray-300">
+                No. Drum *
+              </Label>
+              <Input
+                id="numberOfDrums"
+                type="number"
+                value={formData.numberOfDrums}
+                onChange={(e) =>
+                  setFormData({ ...formData, numberOfDrums: e.target.value })
+                }
+                placeholder="Enter number of drums"
                 className="bg-gray-700 border-gray-600 text-white"
                 required
               />
@@ -161,78 +303,6 @@ export default function AddVehicleForm({
               />
             </div>
             <div>
-              <Label htmlFor="truckNumber" className="text-gray-300">
-                Truck Number *
-              </Label>
-              <Input
-                id="truckNumber"
-                value={formData.truckNumber}
-                onChange={(e) =>
-                  setFormData({ ...formData, truckNumber: e.target.value })
-                }
-                className="bg-gray-700 border-gray-600 text-white"
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="trailerNumber" className="text-gray-300">
-                Trailer Number
-              </Label>
-              <Input
-                id="trailerNumber"
-                value={formData.trailerNumber}
-                onChange={(e) =>
-                  setFormData({ ...formData, trailerNumber: e.target.value })
-                }
-                className="bg-gray-700 border-gray-600 text-white"
-              />
-            </div>
-            <div>
-              <Label htmlFor="driverName" className="text-gray-300">
-                Driver Name *
-              </Label>
-              <Input
-                id="driverName"
-                value={formData.driverName}
-                onChange={(e) =>
-                  setFormData({ ...formData, driverName: e.target.value })
-                }
-                className="bg-gray-700 border-gray-600 text-white"
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="driverPhoneNumber" className="text-gray-300">
-                Driver Phone Number
-              </Label>
-              <Input
-                id="driverPhoneNumber"
-                value={formData.driverPhoneNumber}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    driverPhoneNumber: e.target.value,
-                  })
-                }
-                className="bg-gray-700 border-gray-600 text-white"
-              />
-            </div>
-            <div>
-              <Label htmlFor="numberOfDrums" className="text-gray-300">
-                No. Drum *
-              </Label>
-              <Input
-                id="numberOfDrums"
-                type="number"
-                value={formData.numberOfDrums}
-                onChange={(e) =>
-                  setFormData({ ...formData, numberOfDrums: e.target.value })
-                }
-                className="bg-gray-700 border-gray-600 text-white"
-                required
-              />
-            </div>
-            <div>
               <Label htmlFor="amountInLiters" className="text-gray-300">
                 Amount in (liter) *
               </Label>
@@ -243,6 +313,7 @@ export default function AddVehicleForm({
                 onChange={(e) =>
                   setFormData({ ...formData, amountInLiters: e.target.value })
                 }
+                placeholder="Enter amount in liters"
                 className="bg-gray-700 border-gray-600 text-white"
                 required
               />
@@ -312,8 +383,8 @@ export default function AddVehicleForm({
             </Button>
           </div> */}
 
-          {/* Second row of buttons */}
-          <div className="space-y-2">
+          {/* Buttons */}
+          <div className="flex gap-4 pt-2">
             <Button
               type="button"
               onClick={handleSaveAndPrint}
@@ -329,20 +400,20 @@ export default function AddVehicleForm({
                 !formData.amountInLiters ||
                 !formData.tankNumber
               }
-              className="w-full bg-blue-500 hover:bg-blue-600"
+              className="flex-1 bg-blue-500 hover:bg-blue-600"
             >
               <Save className="h-4 w-4 mr-2" />
               Submit
             </Button>
-            {/* <Button
+            <Button
               type="button"
-              onClick={onCancel}
+              onClick={handleClearForm}
               variant="outline"
-              className="w-full bg-gray-600 hover:bg-gray-700 text-white border-gray-500"
+              className="flex-1 bg-gray-600 hover:bg-gray-700 text-white border-gray-500"
             >
               <X className="h-4 w-4 mr-2" />
               Cancel
-            </Button> */}
+            </Button>
           </div>
         </form>
       </CardContent>

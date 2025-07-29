@@ -22,13 +22,13 @@ const links = [
   },
   {
     href: "/vehicle",
-    label: "Vehicle",
+    label: "Register",
     icon: <FiTruck />,
     roles: ["manager", "admin"],
   },
   {
     href: "/dashboard",
-    label: "Analytics",
+    label: "Search",
     icon: <FiBarChart2 />,
     roles: ["manager", "admin"],
   },

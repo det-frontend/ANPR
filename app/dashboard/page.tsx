@@ -318,65 +318,56 @@ export default function Dashboard() {
       <div className="min-h-screen bg-gray-900">
         {/* Header */}
         <header className="bg-gray-800 shadow-lg border-b border-gray-700">
-          <div className="w-full px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <BarChart3 className="h-8 w-8 text-blue-400" />
-                <div>
-                  <h1 className="text-2xl font-bold text-white">
-                    ANPR Analysis Dashboard
+          <div className="w-full px-4 py-3 sm:py-4">
+            <div className="flex flex-col sm:flex-row items-center sm:items-center justify-between gap-3 sm:gap-4">
+              {/* Logo and Title Section */}
+              <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-center sm:justify-start">
+                <BarChart3 className="h-7 w-7 sm:h-8 sm:w-8 text-blue-400 flex-shrink-0" />
+                <div className="text-center sm:text-left min-w-0">
+                  <h1 className="text-xl sm:text-xl md:text-2xl font-bold text-white truncate">
+                    ANPR Dashboard
                   </h1>
-                  <p className="text-gray-400 text-sm">
+                  <p className="text-gray-400 text-xs sm:text-sm truncate">
                     Vehicle Entry Analysis & Statistics
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4">
+              {/* User Info and Actions Section */}
+              <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full sm:w-auto">
                 {/* User Info */}
-                <div className="flex items-center gap-2 text-gray-300">
-                  <User className="h-4 w-4" />
-                  <span className="text-sm">
-                    {user?.name} ({user?.role})
-                  </span>
+                <div className="hidden sm:flex items-center justify-center sm:justify-end w-full sm:w-auto">
+                  <div className="flex items-center gap-2 text-gray-300 bg-gray-700/50 px-3 py-2 rounded-lg">
+                    <User className="h-4 w-4 text-blue-400" />
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:gap-1">
+                      <span className="text-sm font-medium text-white">
+                        {user?.name}
+                      </span>
+                      <span className="text-xs text-gray-400 sm:text-sm">
+                        ({user?.role})
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex gap-2">
-                  {/* <Button
-                    onClick={loadSampleData}
-                    className="bg-green-600 hover:bg-green-700"
-                    disabled={isLoading}
-                  >
-                    Load Sample Data
-                  </Button>
-                  <Button
-                    onClick={fetchVehicles}
-                    className="bg-gray-600 hover:bg-gray-700"
-                    disabled={isLoading}
-                  >
-                    Refresh
-                  </Button>
-                  <Button
-                    onClick={clearFilters}
-                    className="bg-orange-600 hover:bg-orange-700"
-                  >
-                    Clear Filters
-                  </Button> */}
+                <div className="flex gap-2 w-full sm:w-auto justify-center sm:justify-end">
                   <Button
                     onClick={exportToCSV}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="bg-blue-600 hover:bg-blue-700 text-xs sm:text-sm px-3 py-2"
                   >
-                    <Download className="h-4 w-4 mr-2" />
-                    Export CSV
+                    <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">Export CSV</span>
+                    <span className="sm:hidden">Export</span>
                   </Button>
                   <Button
                     onClick={handleLogout}
                     variant="outline"
-                    className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                    className="border-gray-600 text-gray-300 hover:bg-gray-700 text-xs sm:text-sm px-3 py-2"
                   >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Logout
+                    <LogOut className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">Logout</span>
+                    <span className="sm:hidden">Logout</span>
                   </Button>
                 </div>
               </div>
@@ -447,6 +438,16 @@ export default function Dashboard() {
                 <p className="text-xs text-gray-400">Today&apos;s vehicles</p>
               </CardContent>
             </Card>
+          </div>
+
+          {/* Analytics Chart */}
+          <div className="mb-8">
+            <AnalyticsChart vehicles={vehicles} days={7} />
+          </div>
+
+          {/* Summary Statistics */}
+          <div className="mb-8">
+            <SummaryStats vehicles={vehicles} />
           </div>
 
           {/* Filters */}
@@ -527,7 +528,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="flex gap-2 mt-4">
+              {/* <div className="flex gap-2 mt-4">
                 <Button
                   variant={sortOrder === "desc" ? "default" : "outline"}
                   onClick={() => setSortOrder("desc")}
@@ -542,19 +543,9 @@ export default function Dashboard() {
                 >
                   Ascending
                 </Button>
-              </div>
+              </div> */}
             </CardContent>
           </Card>
-
-          {/* Analytics Chart */}
-          <div className="mb-8">
-            <AnalyticsChart vehicles={vehicles} days={7} />
-          </div>
-
-          {/* Summary Statistics */}
-          <div className="mb-8">
-            <SummaryStats vehicles={vehicles} />
-          </div>
 
           {/* Data Table */}
           <Card className="bg-gray-800 border-gray-700">

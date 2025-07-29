@@ -96,13 +96,34 @@ export default function UserPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 p-6">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-gray-800 rounded-lg shadow-lg p-6 border border-gray-700">
-          <h1 className="text-3xl font-bold text-white mb-6">
-            User Management
-          </h1>
+    <div className="min-h-screen bg-gray-900">
+      {/* Header */}
+      <header className="bg-gray-800 shadow-lg border-b border-gray-700">
+        <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4">
+          <div className="flex flex-col sm:flex-row items-center sm:items-center justify-between gap-3 sm:gap-4">
+            {/* Logo and Title Section */}
+            <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-center sm:justify-start">
+              <div className="h-7 w-7 sm:h-8 sm:w-8 bg-blue-400 rounded-lg flex items-center justify-center flex-shrink-0">
+                <span className="text-white font-bold text-sm sm:text-base">
+                  U
+                </span>
+              </div>
+              <div className="text-center sm:text-left min-w-0">
+                <h1 className="text-xl sm:text-xl md:text-2xl font-bold text-white truncate">
+                  User Management
+                </h1>
+                <p className="text-gray-400 text-xs sm:text-sm truncate">
+                  Manage system users and permissions
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
 
+      {/* Main Content */}
+      <main className="max-w-4xl mx-auto p-6">
+        <div className="bg-gray-800 rounded-lg shadow-lg p-6 border border-gray-700">
           {/* Form Section */}
           <div className="bg-gray-700 rounded-lg p-6 mb-6 border border-gray-600">
             <h2 className="text-xl font-semibold text-gray-200 mb-4">
@@ -275,7 +296,7 @@ export default function UserPage() {
             </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

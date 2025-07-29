@@ -1,14 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  Shield,
-  Database,
-  Activity,
-  LogOut,
-  User,
-  BarChart3,
-} from "lucide-react";
+import { Shield, Database, Activity, User, BarChart3 } from "lucide-react";
 import AddVehicleForm from "@/components/AddVehicleForm";
 import RecentVehicles from "@/components/RecentVehicles";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -40,8 +33,26 @@ interface Vehicle {
 export default function Home() {
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [isOnline, setIsOnline] = useState(true);
+  const [queueNumber, setQueueNumber] = useState<string>("");
 
   const { user, logout } = useAuth();
+
+  // Fetch queue number on component mount
+  useEffect(() => {
+    const fetchQueueNumber = async () => {
+      try {
+        const response = await fetch("/api/generate-queue-number");
+        if (response.ok) {
+          const data = await response.json();
+          setQueueNumber(data.queueNumber);
+        }
+      } catch (error) {
+        console.error("Error fetching queue number:", error);
+      }
+    };
+
+    fetchQueueNumber();
+  }, []);
 
   // Check online status
   useEffect(() => {
@@ -65,58 +76,39 @@ export default function Home() {
     setVehicle(null);
   };
 
-  const handleLogout = async () => {
-    await logout();
-  };
-
   return (
     <ProtectedRoute allowedRoles={["client", "manager", "admin"]}>
       <div className="min-h-screen bg-gray-900">
         {/* Header */}
         <header className="bg-gray-800 shadow-lg border-b border-gray-700">
-          <div className="max-w-7xl mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Shield className="h-8 w-8 text-blue-400" />
-                <div>
-                  <h1 className="text-2xl font-bold text-white">
+          <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4">
+            <div className="flex flex-col sm:flex-row items-center sm:items-center justify-between gap-3 sm:gap-4">
+              {/* Logo and Title Section */}
+              <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-center sm:justify-start">
+                <Shield className="h-7 w-7 sm:h-8 sm:w-8 text-blue-400 flex-shrink-0" />
+                <div className="text-center sm:text-left min-w-0">
+                  <h1 className="text-xl sm:text-xl md:text-2xl font-bold text-white truncate">
                     CCTV ANPR System
                   </h1>
-                  <p className="text-gray-400 text-sm">
+                  <p className="text-gray-400 text-xs sm:text-sm truncate">
                     Automatic Number Plate Recognition
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4">
-                {/* User Info */}
-                <div className="flex items-center gap-2 text-gray-300">
-                  <User className="h-4 w-4" />
-                  <span className="text-sm">
-                    {user?.name} ({user?.role})
-                  </span>
+              {/* User Info Section */}
+              <div className="hidden sm:flex items-center sm:justify-end w-full sm:w-auto">
+                <div className="flex items-center gap-2 text-gray-300 bg-gray-700/50 px-3 py-2 rounded-lg">
+                  <User className="h-4 w-4 text-blue-400" />
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:gap-1">
+                    <span className="text-sm font-medium text-white">
+                      {user?.name}
+                    </span>
+                    <span className="text-xs text-gray-400 sm:text-sm">
+                      ({user?.role})
+                    </span>
+                  </div>
                 </div>
-
-                {/* Navigation based on role */}
-                {/* {(user?.role === "manager" || user?.role === "admin") && (
-                  <a
-                    href="/dashboard"
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-                  >
-                    <BarChart3 className="h-4 w-4" />
-                    Dashboard
-                  </a>
-                )} */}
-
-                {/* Logout Button */}
-                <Button
-                  onClick={handleLogout}
-                  variant="outline"
-                  className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Logout
-                </Button>
               </div>
             </div>
           </div>
@@ -133,6 +125,7 @@ export default function Home() {
                 </h2> */}
                 <AddVehicleForm
                   plateNumber=""
+                  queueNumber={queueNumber}
                   onVehicleAdded={handleVehicleAdded}
                 />
               </div>
