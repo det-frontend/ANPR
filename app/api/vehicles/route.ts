@@ -18,8 +18,9 @@ export async function GET() {
     return NextResponse.json(response);
   } catch (error) {
     console.error("Error getting vehicles:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Internal server error", details: error.message },
+      { error: "Internal server error", details: errorMessage },
       { status: 500 }
     );
   }

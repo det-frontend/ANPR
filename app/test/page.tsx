@@ -4,8 +4,15 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+interface TestResults {
+  vehicles?: any;
+  seedData?: any;
+  checkPlate?: any;
+  addVehicle?: any;
+}
+
 export default function TestPage() {
-  const [testResults, setTestResults] = useState<any>({});
+  const [testResults, setTestResults] = useState<TestResults>({});
 
   const testVehiclesAPI = async () => {
     try {
@@ -13,12 +20,13 @@ export default function TestPage() {
       const response = await fetch("/api/vehicles");
       const data = await response.json();
       console.log("Vehicles API response:", data);
-      setTestResults((prev) => ({ ...prev, vehicles: data }));
+      setTestResults((prev: TestResults) => ({ ...prev, vehicles: data }));
     } catch (error) {
       console.error("Vehicles API error:", error);
-      setTestResults((prev) => ({
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      setTestResults((prev: TestResults) => ({
         ...prev,
-        vehicles: { error: error.message },
+        vehicles: { error: errorMessage },
       }));
     }
   };
@@ -29,12 +37,13 @@ export default function TestPage() {
       const response = await fetch("/api/seed-data", { method: "POST" });
       const data = await response.json();
       console.log("Seed data API response:", data);
-      setTestResults((prev) => ({ ...prev, seedData: data }));
+      setTestResults((prev: TestResults) => ({ ...prev, seedData: data }));
     } catch (error) {
       console.error("Seed data API error:", error);
-      setTestResults((prev) => ({
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      setTestResults((prev: TestResults) => ({
         ...prev,
-        seedData: { error: error.message },
+        seedData: { error: errorMessage },
       }));
     }
   };
@@ -45,12 +54,13 @@ export default function TestPage() {
       const response = await fetch("/api/check-plate?plate=TRK-001");
       const data = await response.json();
       console.log("Check plate API response:", data);
-      setTestResults((prev) => ({ ...prev, checkPlate: data }));
+      setTestResults((prev: TestResults) => ({ ...prev, checkPlate: data }));
     } catch (error) {
       console.error("Check plate API error:", error);
-      setTestResults((prev) => ({
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      setTestResults((prev: TestResults) => ({
         ...prev,
-        checkPlate: { error: error.message },
+        checkPlate: { error: errorMessage },
       }));
     }
   };
@@ -81,12 +91,13 @@ export default function TestPage() {
       });
       const data = await response.json();
       console.log("Add vehicle API response:", data);
-      setTestResults((prev) => ({ ...prev, addVehicle: data }));
+      setTestResults((prev: TestResults) => ({ ...prev, addVehicle: data }));
     } catch (error) {
       console.error("Add vehicle API error:", error);
-      setTestResults((prev) => ({
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      setTestResults((prev: TestResults) => ({
         ...prev,
-        addVehicle: { error: error.message },
+        addVehicle: { error: errorMessage },
       }));
     }
   };

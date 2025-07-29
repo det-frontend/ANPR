@@ -54,7 +54,7 @@ export class AuthService {
       updatedAt: new Date().toISOString(),
     };
 
-    const result = await collection.insertOne(newUser);
+    const result = await collection.insertOne(newUser as any);
     const createdUser = await collection.findOne({ _id: result.insertedId });
 
     if (!createdUser) {
@@ -209,6 +209,6 @@ export class AuthService {
       },
     ];
 
-    await collection.insertMany(defaultUsers);
+    await collection.insertMany(defaultUsers as any);
   }
 }

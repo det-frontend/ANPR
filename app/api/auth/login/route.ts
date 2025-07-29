@@ -30,16 +30,8 @@ export async function POST(request: NextRequest) {
       { expiresIn: "24h" }
     );
 
-    // Set cookie
-    const cookieStore = cookies();
-    cookieStore.set("auth-token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 24 * 60 * 60, // 24 hours
-    });
-
-    return NextResponse.json({
+    // Set cookie using NextResponse
+    const response = NextResponse.json({
       success: true,
       user: {
         _id: user._id,
@@ -49,6 +41,15 @@ export async function POST(request: NextRequest) {
         name: user.name,
       },
     });
+
+    response.cookies.set("auth-token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 24 * 60 * 60, // 24 hours
+    });
+
+    return response;
   } catch (error) {
     console.error("Login error:", error);
     return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
