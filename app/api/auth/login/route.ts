@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     );
 
     // Set cookie
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     cookieStore.set("auth-token", token, {
       httpOnly: true,
       // Only secure in production, not on localhost
