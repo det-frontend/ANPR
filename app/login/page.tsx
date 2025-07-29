@@ -1,131 +1,176 @@
 "use client";
 
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Shield, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, Shield } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [isSeeding, setIsSeeding] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const { user, login } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (user) {
+      // Redirect based on role
+      if (user.role === "manager") {
+        router.push("/dashboard");
+      } else {
+        router.push("/");
+      }
+    }
+  }, [user, router]);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (!email || !password) {
-      setError("Please enter both email and password.");
-      return;
-    }
-    setLoading(true);
-    // Placeholder for actual authentication logic
-    setTimeout(() => {
-      setLoading(false);
-      if (email === "admin@example.com" && password === "password") {
-        alert("Login successful! (Demo only)");
-      } else {
-        setError("Invalid email or password.");
+    setIsLoading(true);
+
+    try {
+      const success = await login(username, password);
+      if (!success) {
+        setError("Invalid username or password");
       }
-    }, 1000);
+    } catch (error) {
+      setError("Login failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
+  const handleSeedUsers = async () => {
+    setIsSeeding(true);
+    try {
+      const response = await fetch("/api/auth/seed", { method: "POST" });
+      if (response.ok) {
+        alert(
+          "Default users created successfully!\n\nManager: username=manager, password=manager123\nClient: username=client, password=client123"
+        );
+      } else {
+        alert("Failed to create default users");
+      }
+    } catch (error) {
+      alert("Error creating default users");
+    } finally {
+      setIsSeeding(false);
+    }
+  };
+
+  if (user) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
+          <p className="text-gray-300">Redirecting...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900">
-      <Card className="w-full max-w-md bg-gray-800 border-gray-700 shadow-2xl">
-        <CardHeader className="flex flex-col items-center gap-2">
-          <div className="flex items-center justify-center w-14 h-14 rounded-full bg-blue-700 mb-2">
-            <Shield className="h-8 w-8 text-white" />
-          </div>
-          <CardTitle className="text-white text-2xl text-center">
-           Role Based Login
-          </CardTitle>
-          <div className="text-gray-400 text-sm text-center w-full">
-            Welcome to the ANPR Vehicle Management System
-          </div>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <Label htmlFor="email" className="text-gray-300">
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="bg-gray-700 border-gray-600 text-white"
-                autoComplete="email"
-                required
-                placeholder="you@email.com"
-              />
+    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <Card className="bg-gray-800 border-gray-700">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <Shield className="h-12 w-12 text-blue-400" />
             </div>
-            <div>
-              <Label htmlFor="password" className="text-gray-300">
-                Password
-              </Label>
-              <div className="relative">
+            <CardTitle className="text-2xl font-bold text-white">
+              ANPR System Login
+            </CardTitle>
+            <p className="text-gray-400 text-sm">
+              Enter your credentials to access the system
+            </p>
+          </CardHeader>
+
+          <CardContent>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="username" className="text-gray-300">
+                  Username
+                </Label>
                 <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="bg-gray-700 border-gray-600 text-white pr-10"
-                  autoComplete="current-password"
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="bg-gray-700 border-gray-600 text-white"
+                  placeholder="Enter your username"
                   required
-                  placeholder="Your password"
                 />
-                <button
-                  type="button"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
-                  tabIndex={-1}
-                  onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
-                </button>
               </div>
-            </div>
-            {error && (
-              <div className="text-red-400 text-sm bg-red-900/20 p-2 rounded border border-red-800">
-                {error}
+
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-gray-300">
+                  Password
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="bg-gray-700 border-gray-600 text-white pr-10"
+                    placeholder="Enter your password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
               </div>
-            )}
-            <Button
-              type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700"
-              disabled={loading}
-            >
-              {loading ? "Logging in..." : "Login"}
-            </Button>
-            {/* <div className="flex items-center my-2">
-              <div className="flex-1 h-px bg-gray-700" />
-              <span className="mx-2 text-gray-500 text-xs">or</span>
-              <div className="flex-1 h-px bg-gray-700" />
+
+              {error && (
+                <div className="flex items-center gap-2 p-3 bg-red-900/20 border border-red-800 rounded-lg">
+                  <AlertCircle className="h-4 w-4 text-red-400" />
+                  <span className="text-red-400 text-sm">{error}</span>
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-blue-600 hover:bg-blue-700"
+              >
+                {isLoading ? "Signing In..." : "Sign In"}
+              </Button>
+            </form>
+
+            <div className="mt-6 pt-6 border-t border-gray-700">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleSeedUsers}
+                disabled={isSeeding}
+                className="w-full bg-gray-700 hover:bg-gray-600 text-white border-gray-600"
+              >
+                {isSeeding ? "Creating Users..." : "Create Default Users"}
+              </Button>
+              <p className="text-xs text-gray-500 mt-2 text-center">
+                Click to create default manager and client accounts for testing
+              </p>
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full border-gray-600 text-gray-200 hover:bg-gray-700"
-              onClick={() => {
-                setEmail("admin@example.com");
-                setPassword("password");
-                setError("");
-              }}
-            >
-              Demo Login
-            </Button> */}
-          </form>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

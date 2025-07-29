@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { PlusCircle, Save } from "lucide-react";
+import { PlusCircle, Save, Truck, Printer, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,10 +18,12 @@ import { Label } from "@/components/ui/label";
 interface AddVehicleFormProps {
   plateNumber: string;
   onVehicleAdded: (vehicle: any) => void;
+  onCancel?: () => void;
 }
 export default function AddVehicleForm({
   plateNumber,
   onVehicleAdded,
+  onCancel,
 }: AddVehicleFormProps) {
   const [formData, setFormData] = useState({
     orderNumber: "",
@@ -69,6 +71,20 @@ export default function AddVehicleForm({
       setError("Network error. Please try again.");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handlePrint = () => {
+    // Print functionality - you can implement this based on your needs
+    // window.print();
+    console.log
+  };
+
+  const handleSaveAndPrint = async () => {
+    // First save the vehicle, then print
+    await handleSubmit(new Event("submit") as any);
+    if (!error) {
+      handlePrint();
     }
   };
 
@@ -265,25 +281,69 @@ export default function AddVehicleForm({
             </div>
           )}
 
-          <Button
-            type="submit"
-            disabled={
-              isSubmitting ||
-              !formData.orderNumber ||
-              !formData.companyName ||
-              !formData.customerName ||
-              !formData.orderDate ||
-              !formData.truckNumber ||
-              !formData.driverName ||
-              !formData.numberOfDrums ||
-              !formData.amountInLiters ||
-              !formData.tankNumber
-            }
-            className="w-full bg-green-600 hover:bg-green-700"
-          >
-            <Save className="h-4 w-4 mr-2" />
-            {isSubmitting ? "Adding Vehicle..." : "Add Vehicle"}
-          </Button>
+          {/* First row of buttons */}
+          <div className="flex gap-4">
+            <Button
+              type="submit"
+              disabled={
+                isSubmitting ||
+                !formData.orderNumber ||
+                !formData.companyName ||
+                !formData.customerName ||
+                !formData.orderDate ||
+                !formData.truckNumber ||
+                !formData.driverName ||
+                !formData.numberOfDrums ||
+                !formData.amountInLiters ||
+                !formData.tankNumber
+              }
+              className="flex-1 bg-green-600 hover:bg-green-700"
+            >
+              <Truck className="h-4 w-4 mr-2" />
+              {isSubmitting ? "Adding Vehicle..." : "Add Vehicle"}
+            </Button>
+            <Button
+              type="button"
+              onClick={handlePrint}
+              className="flex-1 bg-blue-700 hover:bg-blue-800"
+            >
+              <Printer className="h-4 w-4 mr-2" />
+              Print
+            </Button>
+          </div>
+
+          {/* Second row of buttons */}
+          <div className="space-y-2">
+            <Button
+              type="button"
+              onClick={handleSaveAndPrint}
+              disabled={
+                isSubmitting ||
+                !formData.orderNumber ||
+                !formData.companyName ||
+                !formData.customerName ||
+                !formData.orderDate ||
+                !formData.truckNumber ||
+                !formData.driverName ||
+                !formData.numberOfDrums ||
+                !formData.amountInLiters ||
+                !formData.tankNumber
+              }
+              className="w-full bg-blue-500 hover:bg-blue-600"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Save and Print
+            </Button>
+            {/* <Button
+              type="button"
+              onClick={onCancel}
+              variant="outline"
+              className="w-full bg-gray-600 hover:bg-gray-700 text-white border-gray-500"
+            >
+              <X className="h-4 w-4 mr-2" />
+              Cancel
+            </Button> */}
+          </div>
         </form>
       </CardContent>
     </Card>
