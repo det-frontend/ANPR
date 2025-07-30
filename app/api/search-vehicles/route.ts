@@ -18,7 +18,7 @@ export async function GET(request: Request) {
       success: true,
       vehicles: vehicles.map((vehicle) => ({
         ...vehicle,
-        _id: vehicle._id?.toString(),
+        _id: vehicle._id?.toString() || "",
         createdAt: vehicle.createdAt?.toISOString(),
         updatedAt: vehicle.updatedAt?.toISOString(),
       })),

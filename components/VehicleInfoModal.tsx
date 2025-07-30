@@ -18,30 +18,23 @@ import {
   Package,
   Droplets,
 } from "lucide-react";
+import { VehicleResponse } from "@/lib/types";
 
-interface Vehicle {
+// Interface for vehicle info data
+interface VehicleInfoData {
   _id: string;
-  queueNumber?: string;
-  orderNumber?: string;
-  orderDate?: string;
-  companyName?: string;
-  customerName?: string;
-  truckNumber: string;
-  trailerNumber?: string;
+  vehicleNumber: string;
   driverName: string;
-  driverPhoneNumber?: string;
-  numberOfDrums?: number;
-  amountInLiters?: number;
-  tankNumber?: number;
+  driverPhone: string;
+  trailerNumber: string;
+  customerName: string;
+  companyName: string;
   createdAt: string;
-  updatedAt?: string;
-  customerLevel1?: string;
-  customerLevel2?: string;
-  dam_capacity?: string;
+  updatedAt: string;
 }
 
 interface VehicleInfoModalProps {
-  vehicle: Vehicle | null;
+  vehicle: VehicleResponse | VehicleInfoData | null;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -53,12 +46,93 @@ export default function VehicleInfoModal({
 }: VehicleInfoModalProps) {
   if (!vehicle) return null;
 
+  // Helper functions to safely access properties
+  const isVehicleEntry = (data: any): data is VehicleResponse => {
+    return "truckNumber" in data && "queueNumber" in data;
+  };
+
+  const isVehicleInfo = (data: any): data is VehicleInfoData => {
+    return "vehicleNumber" in data && "driverPhone" in data;
+  };
+
+  // Get display values based on data type
+  const getVehicleNumber = () => {
+    if (isVehicleEntry(vehicle)) return vehicle.truckNumber;
+    if (isVehicleInfo(vehicle)) return vehicle.vehicleNumber;
+    return "N/A";
+  };
+
+  const getTrailerNumber = () => {
+    if (isVehicleEntry(vehicle)) return vehicle.trailerNumber;
+    if (isVehicleInfo(vehicle)) return vehicle.trailerNumber;
+    return "N/A";
+  };
+
+  const getDriverPhone = () => {
+    if (isVehicleEntry(vehicle)) return vehicle.driverPhoneNumber;
+    if (isVehicleInfo(vehicle)) return vehicle.driverPhone;
+    return "N/A";
+  };
+
+  const getCompanyName = () => {
+    if (isVehicleEntry(vehicle))
+      return vehicle.companyName || vehicle.customerLevel1;
+    if (isVehicleInfo(vehicle)) return vehicle.companyName;
+    return "N/A";
+  };
+
+  const getCustomerName = () => {
+    if (isVehicleEntry(vehicle))
+      return vehicle.customerName || vehicle.customerLevel2;
+    if (isVehicleInfo(vehicle)) return vehicle.customerName;
+    return "N/A";
+  };
+
+  const getCreatedAt = () => {
+    return vehicle.createdAt;
+  };
+
+  // Additional fields for vehicle entries
+  const getQueueNumber = () => {
+    if (isVehicleEntry(vehicle)) return vehicle.queueNumber;
+    return null;
+  };
+
+  const getOrderNumber = () => {
+    if (isVehicleEntry(vehicle)) return vehicle.orderNumber;
+    return null;
+  };
+
+  const getOrderDate = () => {
+    if (isVehicleEntry(vehicle) && vehicle.orderDate) {
+      return format(parseISO(vehicle.orderDate), "MMM dd, yyyy");
+    }
+    return null;
+  };
+
+  const getNumberOfDrums = () => {
+    if (isVehicleEntry(vehicle)) return vehicle.numberOfDrums;
+    return null;
+  };
+
+  const getAmountInLiters = () => {
+    if (isVehicleEntry(vehicle)) return vehicle.amountInLiters;
+    return null;
+  };
+
+  const getTankNumber = () => {
+    if (isVehicleEntry(vehicle)) return vehicle.tankNumber;
+    return null;
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-gray-800 border-gray-700">
         <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <DialogTitle className="text-white text-xl font-bold">
-            Vehicle Information
+            {isVehicleEntry(vehicle)
+              ? "Vehicle Entry Details"
+              : "Vehicle Information"}
           </DialogTitle>
           <button
             onClick={onClose}
@@ -87,7 +161,7 @@ export default function VehicleInfoModal({
                       variant="secondary"
                       className="bg-green-600 text-white"
                     >
-                      {vehicle.truckNumber}
+                      {getVehicleNumber()}
                     </Badge>
                   </div>
                 </div>
@@ -95,9 +169,7 @@ export default function VehicleInfoModal({
                   <label className="text-sm font-medium text-gray-300">
                     Trailer Number
                   </label>
-                  <div className="text-white">
-                    {vehicle.trailerNumber || "N/A"}
-                  </div>
+                  <div className="text-white">{getTrailerNumber()}</div>
                 </div>
               </div>
             </div>
@@ -121,9 +193,7 @@ export default function VehicleInfoModal({
                   <label className="text-sm font-medium text-gray-300">
                     Phone Number
                   </label>
-                  <div className="text-white">
-                    {vehicle.driverPhoneNumber || "N/A"}
-                  </div>
+                  <div className="text-white">{getDriverPhone()}</div>
                 </div>
               </div>
             </div>
@@ -139,20 +209,93 @@ export default function VehicleInfoModal({
                   <label className="text-sm font-medium text-gray-300">
                     Company Name
                   </label>
-                  <div className="text-white">
-                    {vehicle.companyName || vehicle.customerLevel1 || "N/A"}
-                  </div>
+                  <div className="text-white">{getCompanyName()}</div>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-300">
                     Customer Name
                   </label>
-                  <div className="text-white">
-                    {vehicle.customerName || vehicle.customerLevel2 || "N/A"}
-                  </div>
+                  <div className="text-white">{getCustomerName()}</div>
                 </div>
               </div>
             </div>
+
+            {/* Vehicle Entry Details (only for vehicle entries) */}
+            {(getQueueNumber() || getOrderNumber() || getOrderDate()) && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-white border-b border-gray-600 pb-2">
+                  Entry Details
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {getQueueNumber() && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-300">
+                        Queue Number
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant="secondary"
+                          className="bg-blue-600 text-white text-xs"
+                        >
+                          {getQueueNumber()}
+                        </Badge>
+                      </div>
+                    </div>
+                  )}
+                  {getOrderNumber() && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-300">
+                        Order Number
+                      </label>
+                      <div className="text-white">{getOrderNumber()}</div>
+                    </div>
+                  )}
+                  {getOrderDate() && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-300">
+                        Order Date
+                      </label>
+                      <div className="text-white">{getOrderDate()}</div>
+                    </div>
+                  )}
+                  {getTankNumber() && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-300">
+                        Tank Number
+                      </label>
+                      <div className="text-white">Tank {getTankNumber()}</div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Cargo Information */}
+                {(getNumberOfDrums() || getAmountInLiters()) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    {getNumberOfDrums() && (
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                          <Package className="h-4 w-4" />
+                          Number of Drums
+                        </label>
+                        <div className="text-white">{getNumberOfDrums()}</div>
+                      </div>
+                    )}
+                    {getAmountInLiters() && (
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                          <Droplets className="h-4 w-4" />
+                          Amount (Liters)
+                        </label>
+                        <div className="text-white">
+                          {getAmountInLiters()?.toLocaleString()} L
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Dates */}
             <div className="space-y-4">
@@ -167,7 +310,7 @@ export default function VehicleInfoModal({
                   </label>
                   <div className="text-white">
                     {format(
-                      parseISO(vehicle.createdAt),
+                      parseISO(getCreatedAt()),
                       "MMM dd, yyyy 'at' HH:mm"
                     )}
                   </div>
@@ -193,7 +336,7 @@ export default function VehicleInfoModal({
                     <Truck className="h-12 w-12 mx-auto mb-2 opacity-50" />
                     <p className="text-sm">Front Number Plate Image</p>
                     <p className="text-xs text-gray-500 mt-1">
-                      {vehicle.truckNumber}
+                      {getVehicleNumber()}
                     </p>
                   </div>
                 </div>
@@ -225,7 +368,7 @@ export default function VehicleInfoModal({
                     <Truck className="h-12 w-12 mx-auto mb-2 opacity-50" />
                     <p className="text-sm">Car Above View Image</p>
                     <p className="text-xs text-gray-500 mt-1">
-                      Top view of {vehicle.truckNumber}
+                      Top view of {getVehicleNumber()}
                     </p>
                   </div>
                 </div>

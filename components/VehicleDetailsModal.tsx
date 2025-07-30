@@ -27,7 +27,7 @@ interface Vehicle {
   orderDate?: string;
   companyName?: string;
   customerName?: string;
-  truckNumber: string;
+  vehicleNumber: string;
   trailerNumber?: string;
   driverName: string;
   driverPhoneNumber?: string;
@@ -63,7 +63,7 @@ export default function VehicleDetailsModal({
             Vehicle Details
           </DialogTitle>
           <DialogDescription className="text-gray-400">
-            Detailed information for vehicle {vehicle.truckNumber}
+            Detailed information for vehicle {vehicle.vehicleNumber}
           </DialogDescription>
         </DialogHeader>
 
@@ -106,7 +106,7 @@ export default function VehicleDetailsModal({
                     variant="secondary"
                     className="bg-green-600 text-white"
                   >
-                    {vehicle.truckNumber}
+                    {vehicle.vehicleNumber}
                   </Badge>
                 </div>
               </div>

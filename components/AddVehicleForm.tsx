@@ -15,10 +15,13 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 
+import { VehicleResponse } from "@/lib/types";
+import { EventBus, EVENTS } from "@/lib/events";
+
 interface AddVehicleFormProps {
   plateNumber: string;
   queueNumber: string;
-  onVehicleAdded: (vehicle: any) => void;
+  onVehicleAdded: (vehicle: VehicleResponse) => void;
   onCancel?: () => void;
 }
 export default function AddVehicleForm({
@@ -74,6 +77,10 @@ export default function AddVehicleForm({
 
       if (response.ok) {
         onVehicleAdded(data.vehicle);
+        // Clear form after successful submission
+        handleClearForm();
+        // Publish event to notify other components
+        EventBus.publish(EVENTS.VEHICLE_ADDED, data.vehicle);
       } else {
         setError(data.error || "Failed to add vehicle");
       }
@@ -109,6 +116,11 @@ export default function AddVehicleForm({
   };
 
   const handleClearForm = () => {
+    // Clear search timeout
+    if ((window as any).searchTimeout) {
+      clearTimeout((window as any).searchTimeout);
+    }
+
     setFormData({
       orderNumber: "",
       companyName: "",
@@ -126,9 +138,10 @@ export default function AddVehicleForm({
     setCopied(false);
     setSuggestions([]);
     setShowSuggestions(false);
+    setIsSearching(false);
   };
 
-  // Search vehicles for autocomplete
+  // Search vehicles for autocomplete with debounce
   const searchVehicles = async (query: string) => {
     if (!query || query.trim().length < 2) {
       setSuggestions([]);
@@ -136,27 +149,37 @@ export default function AddVehicleForm({
       return;
     }
 
-    setIsSearching(true);
-    try {
-      const response = await fetch(
-        `/api/search-vehicles?q=${encodeURIComponent(query)}`
-      );
-      const data = await response.json();
+    // Clear previous timeout
+    if ((window as any).searchTimeout) {
+      clearTimeout((window as any).searchTimeout);
+    }
 
-      if (response.ok && data.vehicles) {
-        setSuggestions(data.vehicles);
-        setShowSuggestions(data.vehicles.length > 0);
-      } else {
+    // Set loading state immediately
+    setIsSearching(true);
+
+    // Debounce the search
+    (window as any).searchTimeout = setTimeout(async () => {
+      try {
+        const response = await fetch(
+          `/api/search-vehicles?q=${encodeURIComponent(query)}`
+        );
+        const data = await response.json();
+
+        if (response.ok && data.vehicles) {
+          setSuggestions(data.vehicles);
+          setShowSuggestions(data.vehicles.length > 0);
+        } else {
+          setSuggestions([]);
+          setShowSuggestions(false);
+        }
+      } catch (error) {
+        console.error("Error searching vehicles:", error);
         setSuggestions([]);
         setShowSuggestions(false);
+      } finally {
+        setIsSearching(false);
       }
-    } catch (error) {
-      console.error("Error searching vehicles:", error);
-      setSuggestions([]);
-      setShowSuggestions(false);
-    } finally {
-      setIsSearching(false);
-    }
+    }, 300); // 300ms delay
   };
 
   // Handle suggestion selection
@@ -188,6 +211,15 @@ export default function AddVehicleForm({
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Cleanup search timeout on unmount
+  useEffect(() => {
+    return () => {
+      if ((window as any).searchTimeout) {
+        clearTimeout((window as any).searchTimeout);
+      }
     };
   }, []);
 
@@ -284,23 +316,30 @@ export default function AddVehicleForm({
               <Label htmlFor="truckNumber" className="text-gray-300">
                 Truck Number *
               </Label>
-              <Input
-                id="truckNumber"
-                value={formData.truckNumber}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setFormData({ ...formData, truckNumber: value });
-                  searchVehicles(value);
-                }}
-                onFocus={() => {
-                  if (formData.truckNumber && suggestions.length > 0) {
-                    setShowSuggestions(true);
-                  }
-                }}
-                placeholder="Enter truck number"
-                className="bg-gray-700 border-gray-600 text-white"
-                required
-              />
+              <div className="relative">
+                <Input
+                  id="truckNumber"
+                  value={formData.truckNumber}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData({ ...formData, truckNumber: value });
+                    searchVehicles(value);
+                  }}
+                  onFocus={() => {
+                    if (formData.truckNumber && suggestions.length > 0) {
+                      setShowSuggestions(true);
+                    }
+                  }}
+                  placeholder="Enter truck number"
+                  className="bg-gray-700 border-gray-600 text-white pr-10"
+                  required
+                />
+                {isSearching && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400"></div>
+                  </div>
+                )}
+              </div>
 
               {/* Autocomplete Suggestions */}
               {showSuggestions && (
@@ -509,8 +548,7 @@ export default function AddVehicleForm({
           {/* Buttons */}
           <div className="flex gap-4 pt-2">
             <Button
-              type="button"
-              onClick={handleSaveAndPrint}
+              type="submit"
               disabled={
                 isSubmitting ||
                 !formData.orderNumber ||
@@ -526,7 +564,7 @@ export default function AddVehicleForm({
               className="flex-1 bg-blue-500 hover:bg-blue-600"
             >
               <Save className="h-4 w-4 mr-2" />
-              Submit
+              {isSubmitting ? "Adding Vehicle..." : "Add Vehicle"}
             </Button>
             <Button
               type="button"
@@ -535,7 +573,7 @@ export default function AddVehicleForm({
               className="flex-1 bg-gray-600 hover:bg-gray-700 text-white border-gray-500"
             >
               <X className="h-4 w-4 mr-2" />
-              Cancel
+              Clear Form
             </Button>
           </div>
         </form>

@@ -3,38 +3,19 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { startOfDay, endOfDay, parseISO } from "date-fns";
 import { DateRange } from "react-day-picker";
-
-interface Vehicle {
-  _id: string;
-  queueNumber?: string;
-  orderNumber?: string;
-  orderDate?: string;
-  companyName?: string;
-  customerName?: string;
-  truckNumber: string;
-  trailerNumber?: string;
-  driverName: string;
-  driverPhoneNumber?: string;
-  numberOfDrums?: number;
-  amountInLiters?: number;
-  tankNumber?: number;
-  createdAt: string;
-  updatedAt?: string;
-  customerLevel1?: string;
-  customerLevel2?: string;
-  dam_capacity?: string;
-}
+import { VehicleResponse } from "@/lib/types";
+import { EventBus, EVENTS } from "@/lib/events";
 
 interface DashboardContextType {
-  vehicles: Vehicle[];
-  filteredVehicles: Vehicle[];
+  vehicles: VehicleResponse[];
+  filteredVehicles: VehicleResponse[];
   isLoading: boolean;
   dateRange: DateRange;
   searchTerm: string;
   companyFilter: string;
   sortBy: string;
   sortOrder: "asc" | "desc";
-  setDateRange: (range: DateRange) => void;
+  setDateRange: React.Dispatch<React.SetStateAction<DateRange>>;
   setSearchTerm: (term: string) => void;
   setCompanyFilter: (filter: string) => void;
   setSortBy: (sort: string) => void;
@@ -48,8 +29,10 @@ const DashboardContext = createContext<DashboardContextType | undefined>(
 );
 
 export function DashboardProvider({ children }: { children: React.ReactNode }) {
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [filteredVehicles, setFilteredVehicles] = useState<Vehicle[]>([]);
+  const [vehicles, setVehicles] = useState<VehicleResponse[]>([]);
+  const [filteredVehicles, setFilteredVehicles] = useState<VehicleResponse[]>(
+    []
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [dateRange, setDateRange] = useState<DateRange>({
     from: startOfDay(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)),
@@ -140,12 +123,33 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
     // Sorting
     filtered.sort((a, b) => {
-      let aValue: any = a[sortBy as keyof Vehicle];
-      let bValue: any = b[sortBy as keyof Vehicle];
+      let aValue: any;
+      let bValue: any;
 
-      if (sortBy === "orderDate" || sortBy === "createdAt") {
-        aValue = new Date(aValue || new Date()).getTime();
-        bValue = new Date(bValue || new Date()).getTime();
+      switch (sortBy) {
+        case "orderDate":
+          aValue = new Date(a.orderDate || a.createdAt || new Date()).getTime();
+          bValue = new Date(b.orderDate || b.createdAt || new Date()).getTime();
+          break;
+        case "createdAt":
+          aValue = new Date(a.createdAt || new Date()).getTime();
+          bValue = new Date(b.createdAt || new Date()).getTime();
+          break;
+        case "truckNumber":
+          aValue = a.truckNumber || "";
+          bValue = b.truckNumber || "";
+          break;
+        case "driverName":
+          aValue = a.driverName || "";
+          bValue = b.driverName || "";
+          break;
+        case "companyName":
+          aValue = a.companyName || "";
+          bValue = b.companyName || "";
+          break;
+        default:
+          aValue = a.createdAt || new Date();
+          bValue = b.createdAt || new Date();
       }
 
       if (sortOrder === "asc") {
@@ -173,6 +177,18 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   // Load vehicles on component mount
   useEffect(() => {
     fetchVehicles();
+  }, []);
+
+  // Listen for vehicle added events
+  useEffect(() => {
+    const unsubscribe = EventBus.subscribe(EVENTS.VEHICLE_ADDED, () => {
+      console.log("Vehicle added event received, refreshing vehicles...");
+      fetchVehicles();
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   // Apply filters when data or filters change

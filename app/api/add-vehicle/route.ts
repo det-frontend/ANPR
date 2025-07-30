@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { VehicleDB } from "@/lib/db-helper";
+import { VehicleInput } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -43,19 +44,11 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check if vehicle already exists
-    const existingVehicle = await VehicleDB.findByPlate(truckNumber);
-    if (existingVehicle) {
-      return NextResponse.json(
-        {
-          error: "Vehicle with this truck number already exists",
-        },
-        { status: 409 }
-      );
-    }
+    // Note: Removed duplicate check to allow multiple entries with same truck number
+    // This allows the same truck to make multiple deliveries/entries
 
     // Create new vehicle
-    const vehicleData = {
+    const vehicleData: VehicleInput = {
       orderNumber,
       companyName,
       customerName,
@@ -76,7 +69,7 @@ export async function POST(request: Request) {
       success: true,
       vehicle: {
         ...vehicle,
-        _id: vehicle._id?.toString(),
+        _id: vehicle._id?.toString() || "",
         createdAt: vehicle.createdAt?.toISOString(),
         updatedAt: vehicle.updatedAt?.toISOString(),
       },

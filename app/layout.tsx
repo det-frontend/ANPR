@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { DashboardProvider } from "@/contexts/DashboardContext";
+import { VehicleInfoProvider } from "@/contexts/VehicleInfoContext";
 import SidebarWrapper from "../components/SidebarWrapper";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -22,7 +23,9 @@ export default function RootLayout({
       <body className="h-full m-0" suppressHydrationWarning={true}>
         <AuthProvider>
           <DashboardProvider>
-            <SidebarWrapper>{children}</SidebarWrapper>
+            <VehicleInfoProvider>
+              <SidebarWrapper>{children}</SidebarWrapper>
+            </VehicleInfoProvider>
           </DashboardProvider>
         </AuthProvider>
       </body>

@@ -1,48 +1,40 @@
-export const dynamic = "force-dynamic";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { VehicleInfoDB } from "@/lib/vehicle-info-db";
 
-// GET - Get all vehicle info
-export async function GET(request: NextRequest) {
+export const dynamic = "force-dynamic";
+
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const search = searchParams.get("search");
+    console.log("GET /api/vehicle-info called");
+    const vehicleInfo = await VehicleInfoDB.getAllVehicleInfo();
+    console.log("Retrieved vehicle info from DB:", vehicleInfo.length);
 
-    console.log("API: Search parameter:", search);
-
-    let vehicles;
-    if (search && search.trim()) {
-      console.log("API: Searching for:", search);
-      vehicles = await VehicleInfoDB.searchVehicleInfo(search.trim());
-    } else {
-      console.log("API: Getting all vehicles");
-      vehicles = await VehicleInfoDB.getAllVehicleInfo();
-    }
-
-    console.log("API: Found vehicles:", vehicles.length);
-
-    return NextResponse.json({
-      success: true,
-      vehicles: vehicles.map((vehicle) => ({
-        ...vehicle,
-        _id: vehicle._id?.toString(),
-        createdAt: vehicle.createdAt?.toISOString(),
-        updatedAt: vehicle.updatedAt?.toISOString(),
+    const response = {
+      vehicles: vehicleInfo.map((info) => ({
+        ...info,
+        _id: info._id?.toString() || "",
+        createdAt: info.createdAt?.toISOString(),
+        updatedAt: info.updatedAt?.toISOString(),
       })),
-    });
+    };
+
+    console.log("Sending response:", response);
+    return NextResponse.json(response);
   } catch (error) {
-    console.error("Error fetching vehicle info:", error);
+    console.error("Error getting vehicle info:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", details: errorMessage },
       { status: 500 }
     );
   }
 }
 
-// POST - Add new vehicle info
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     const body = await request.json();
+    console.log("POST /api/vehicle-info called with body:", body);
 
     const {
       vehicleNumber,
@@ -54,56 +46,45 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Validation
-    if (
-      !vehicleNumber ||
-      !driverName ||
-      !driverPhone ||
-      !trailerNumber ||
-      !customerName ||
-      !companyName
-    ) {
+    if (!vehicleNumber || !driverName || !customerName || !companyName) {
       return NextResponse.json(
         {
           error:
-            "Missing required fields: vehicleNumber, driverName, driverPhone, trailerNumber, customerName, companyName",
+            "Missing required fields: vehicleNumber, driverName, customerName, companyName",
         },
         { status: 400 }
       );
     }
 
-    // Create new vehicle info
     const vehicleData = {
       vehicleNumber,
       driverName,
-      driverPhone,
-      trailerNumber,
+      driverPhone: driverPhone || "",
+      trailerNumber: trailerNumber || "",
       customerName,
       companyName,
     };
 
-    const newVehicle = await VehicleInfoDB.addVehicleInfo(vehicleData);
+    const vehicle = await VehicleInfoDB.addVehicleInfo(vehicleData);
 
-    return NextResponse.json(
-      {
-        success: true,
-        vehicle: {
-          ...newVehicle,
-          _id: newVehicle._id?.toString(),
-          createdAt: newVehicle.createdAt?.toISOString(),
-          updatedAt: newVehicle.updatedAt?.toISOString(),
-        },
+    return NextResponse.json({
+      success: true,
+      vehicle: {
+        ...vehicle,
+        _id: vehicle._id?.toString() || "",
+        createdAt: vehicle.createdAt?.toISOString(),
+        updatedAt: vehicle.updatedAt?.toISOString(),
       },
-      { status: 201 }
-    );
+    });
   } catch (error) {
     console.error("Error adding vehicle info:", error);
-
-    if (error instanceof Error && error.message.includes("already exists")) {
-      return NextResponse.json({ error: error.message }, { status: 409 });
-    }
-
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error: "Failed to add vehicle info",
+        details: errorMessage,
+      },
       { status: 500 }
     );
   }

@@ -7,31 +7,11 @@ import RecentVehicles from "@/components/RecentVehicles";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-
-interface Vehicle {
-  _id: string;
-  queueNumber?: string;
-  orderNumber?: string;
-  orderDate?: string;
-  companyName?: string;
-  customerName?: string;
-  truckNumber: string;
-  trailerNumber?: string;
-  driverName: string;
-  driverPhoneNumber?: string;
-  numberOfDrums?: number;
-  amountInLiters?: number;
-  tankNumber?: number;
-  createdAt: string;
-  updatedAt?: string;
-  // Legacy fields for backward compatibility
-  customerLevel1?: string;
-  customerLevel2?: string;
-  dam_capacity?: string;
-}
+import { VehicleResponse } from "@/lib/types";
+import { EventBus, EVENTS } from "@/lib/events";
 
 export default function Home() {
-  const [vehicle, setVehicle] = useState<Vehicle | null>(null);
+  const [vehicle, setVehicle] = useState<VehicleResponse | null>(null);
   const [isOnline, setIsOnline] = useState(true);
   const [queueNumber, setQueueNumber] = useState<string>("");
 
@@ -68,13 +48,37 @@ export default function Home() {
     };
   }, []);
 
-  const handleVehicleAdded = (newVehicle: Vehicle) => {
+  const handleVehicleAdded = (newVehicle: VehicleResponse) => {
     setVehicle(newVehicle);
   };
 
   const resetView = () => {
     setVehicle(null);
   };
+
+  // Listen for vehicle added events to refresh queue number
+  useEffect(() => {
+    const unsubscribe = EventBus.subscribe(EVENTS.VEHICLE_ADDED, () => {
+      console.log("Vehicle added event received, refreshing queue number...");
+      // Refresh queue number after vehicle is added
+      const fetchQueueNumber = async () => {
+        try {
+          const response = await fetch("/api/generate-queue-number");
+          if (response.ok) {
+            const data = await response.json();
+            setQueueNumber(data.queueNumber);
+          }
+        } catch (error) {
+          console.error("Error fetching queue number:", error);
+        }
+      };
+      fetchQueueNumber();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   return (
     <ProtectedRoute allowedRoles={["client", "manager", "admin"]}>
@@ -134,7 +138,7 @@ export default function Home() {
                 <div className="space-y-4">
                   <div className="bg-green-900 border border-green-700 rounded-lg p-4">
                     <h3 className="text-lg font-semibold text-green-200 mb-2">
-                      Vehicle Registered Successfully!
+                      Vehicle Entry Registered Successfully!
                     </h3>
                     <p className="text-green-300">
                       The vehicle has been added to the system.

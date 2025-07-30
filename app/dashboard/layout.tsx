@@ -35,6 +35,7 @@ import AnalyticsChart from "@/components/AnalyticsChart";
 import SummaryStats from "@/components/SummaryStats";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDashboard } from "@/contexts/DashboardContext";
+import { useVehicleInfo } from "@/contexts/VehicleInfoContext";
 import { format } from "date-fns";
 
 interface DashboardLayoutProps {
@@ -61,13 +62,23 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     setSortBy,
     setSortOrder,
     clearFilters,
+    fetchVehicles,
   } = useDashboard();
 
+  const { vehicleInfo } = useVehicleInfo();
+
   const getUniqueCompanies = () => {
-    const companies = vehicles
+    // Get companies from both vehicle entries and vehicle info
+    const vehicleCompanies = vehicles
       .map((v) => v.companyName || v.customerLevel1 || "Unknown")
       .filter(Boolean);
-    return ["all", ...Array.from(new Set(companies))];
+
+    const vehicleInfoCompanies = vehicleInfo
+      .map((v) => v.companyName || "Unknown")
+      .filter(Boolean);
+
+    const allCompanies = [...vehicleCompanies, ...vehicleInfoCompanies];
+    return ["all", ...Array.from(new Set(allCompanies))];
   };
 
   const getStats = () => {
@@ -88,6 +99,27 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     }).length;
 
     return { totalVehicles, uniqueDrivers, uniqueCompanies, todayVehicles };
+  };
+
+  const loadSampleData = async () => {
+    try {
+      const response = await fetch("/api/vehicle-info/seed", {
+        method: "POST",
+      });
+
+      if (response.ok) {
+        // Refresh both vehicle entries and vehicle info
+        fetchVehicles();
+        // Trigger a page refresh to update vehicle info context
+        window.location.reload();
+        alert("Sample data loaded successfully!");
+      } else {
+        alert("Failed to load sample data");
+      }
+    } catch (error) {
+      console.error("Error loading sample data:", error);
+      alert("Error loading sample data");
+    }
   };
 
   const exportToCSV = () => {

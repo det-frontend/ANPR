@@ -13,30 +13,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-
-interface Vehicle {
-  _id: string;
-  queueNumber?: string;
-  orderNumber?: string;
-  orderDate?: string;
-  companyName?: string;
-  customerName?: string;
-  truckNumber: string;
-  trailerNumber?: string;
-  driverName: string;
-  driverPhoneNumber?: string;
-  numberOfDrums?: number;
-  amountInLiters?: number;
-  tankNumber?: number;
-  createdAt: string;
-  // Legacy fields for backward compatibility
-  customerLevel1?: string;
-  customerLevel2?: string;
-  dam_capacity?: string;
-}
+import { VehicleResponse } from "@/lib/types";
+import { EventBus, EVENTS } from "@/lib/events";
 
 export default function RecentVehicles() {
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [vehicles, setVehicles] = useState<VehicleResponse[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchVehicles = async () => {
@@ -55,6 +36,20 @@ export default function RecentVehicles() {
 
   useEffect(() => {
     fetchVehicles();
+  }, []);
+
+  // Listen for vehicle added events
+  useEffect(() => {
+    const unsubscribe = EventBus.subscribe(EVENTS.VEHICLE_ADDED, () => {
+      console.log(
+        "Vehicle added event received, refreshing recent vehicles..."
+      );
+      fetchVehicles();
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   return (

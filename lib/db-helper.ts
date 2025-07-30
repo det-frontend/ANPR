@@ -1,23 +1,6 @@
 import { getDatabase } from "./mongodb";
 import { ObjectId } from "mongodb";
-
-export interface Vehicle {
-  _id?: ObjectId;
-  queueNumber: string; // Auto generated, reset by day
-  orderNumber: string;
-  orderDate: Date;
-  companyName: string; // Changed from customerLevel1
-  customerName: string; // Changed from customerLevel2
-  truckNumber: string;
-  trailerNumber: string;
-  driverName: string;
-  driverPhoneNumber: string;
-  numberOfDrums: number; // Changed from dam_capacity
-  amountInLiters: number; // New field
-  tankNumber: number; // New field (1-6)
-  createdAt: Date;
-  updatedAt: Date;
-}
+import { Vehicle, VehicleInput } from "./types";
 
 export class VehicleDB {
   private static collectionName = "vehicles";
@@ -95,9 +78,7 @@ export class VehicleDB {
   }
 
   static async addVehicle(
-    vehicleData: Omit<Vehicle, "_id" | "createdAt" | "updatedAt"> & {
-      queueNumber?: string;
-    }
+    vehicleData: VehicleInput
   ): Promise<Vehicle> {
     try {
       const db = await getDatabase();
