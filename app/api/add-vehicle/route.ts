@@ -1,8 +1,10 @@
-export const dynamic = "force-dynamic";
-import { NextRequest, NextResponse } from "next/server";
-import { VehicleDB, Vehicle } from "@/lib/db-helper";
+import { NextResponse } from "next/server";
+import { VehicleDB } from "@/lib/db-helper";
+import { VehicleInput } from "@/lib/types";
 
-export async function POST(request: NextRequest) {
+export const dynamic = "force-dynamic";
+
+export async function POST(request: Request) {
   try {
     const body = await request.json();
 
@@ -18,6 +20,7 @@ export async function POST(request: NextRequest) {
       numberOfDrums,
       amountInLiters,
       tankNumber,
+      queueNumber,
     } = body;
 
     // Validation
@@ -41,57 +44,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate tank number (1-6)
-    if (tankNumber < 1 || tankNumber > 6) {
-      return NextResponse.json(
-        { error: "Tank number must be between 1 and 6" },
-        { status: 400 }
-      );
-    }
-
-    // Check if vehicle already exists (by truckNumber)
-    const existingVehicle = await VehicleDB.findByPlate(truckNumber);
-    if (existingVehicle) {
-      return NextResponse.json(
-        { error: "Vehicle with this truck number already exists" },
-        { status: 409 }
-      );
-    }
+    // Note: Removed duplicate check to allow multiple entries with same truck number
+    // This allows the same truck to make multiple deliveries/entries
 
     // Create new vehicle
-    const vehicleData: Omit<
-      Vehicle,
-      "_id" | "createdAt" | "updatedAt" | "queueNumber"
-    > = {
+    const vehicleData: VehicleInput = {
       orderNumber,
       companyName,
       customerName,
-      orderDate: orderDate ? new Date(orderDate) : new Date(),
+      orderDate: new Date(orderDate),
       truckNumber,
       trailerNumber: trailerNumber || "",
       driverName,
       driverPhoneNumber: driverPhoneNumber || "",
-      numberOfDrums: Number(numberOfDrums),
-      amountInLiters: Number(amountInLiters),
-      tankNumber: Number(tankNumber),
+      numberOfDrums,
+      amountInLiters,
+      tankNumber,
+      queueNumber,
     };
 
-    const newVehicle = await VehicleDB.addVehicle(vehicleData);
+    const vehicle = await VehicleDB.addVehicle(vehicleData);
 
-    return NextResponse.json(
-      {
-        success: true,
-        vehicle: {
-          ...newVehicle,
-          _id: newVehicle._id?.toString(),
-        },
+    return NextResponse.json({
+      success: true,
+      vehicle: {
+        ...vehicle,
+        _id: vehicle._id?.toString() || "",
+        createdAt: vehicle.createdAt?.toISOString(),
+        updatedAt: vehicle.updatedAt?.toISOString(),
       },
-      { status: 201 }
-    );
+    });
   } catch (error) {
     console.error("Error adding vehicle:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error: "Failed to add vehicle",
+      },
       { status: 500 }
     );
   }

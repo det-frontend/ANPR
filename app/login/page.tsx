@@ -154,7 +154,7 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            <div className="mt-6 pt-6 border-t border-gray-700">
+            {/* <div className="mt-6 pt-6 border-t border-gray-700">
               <Button
                 type="button"
                 variant="outline"
@@ -167,7 +167,7 @@ export default function LoginPage() {
               <p className="text-xs text-gray-500 mt-2 text-center">
                 Click to create default manager and client accounts for testing
               </p>
-            </div>
+            </div> */}
           </CardContent>
         </Card>
       </div>

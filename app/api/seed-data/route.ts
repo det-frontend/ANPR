@@ -1,10 +1,11 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { VehicleDB } from "@/lib/db-helper";
+import { VehicleInput } from "@/lib/types";
 
 export async function POST(request: NextRequest) {
   try {
-    const sampleVehicles = [
+    const sampleVehicles: VehicleInput[] = [
       {
         orderNumber: "ORD-001",
         companyName: "ABC Logistics",

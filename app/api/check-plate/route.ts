@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
         exists: true,
         vehicle: {
           ...vehicle,
-          _id: vehicle._id?.toString(),
+          _id: vehicle._id?.toString() || "",
         },
       });
     } else {

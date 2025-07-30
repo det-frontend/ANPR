@@ -1,28 +1,11 @@
 import { getDatabase } from "./mongodb";
 import { ObjectId } from "mongodb";
-
-export interface Vehicle {
-  _id?: ObjectId;
-  queueNumber: string; // Auto generated, reset by day
-  orderNumber: string;
-  orderDate: Date;
-  companyName: string; // Changed from customerLevel1
-  customerName: string; // Changed from customerLevel2
-  truckNumber: string;
-  trailerNumber: string;
-  driverName: string;
-  driverPhoneNumber: string;
-  numberOfDrums: number; // Changed from dam_capacity
-  amountInLiters: number; // New field
-  tankNumber: number; // New field (1-6)
-  createdAt: Date;
-  updatedAt: Date;
-}
+import { Vehicle, VehicleInput } from "./types";
 
 export class VehicleDB {
   private static collectionName = "vehicles";
 
-  // Generate queue number based on current date
+  // Generate queue number based on current date with format Q/Date(yy/mm/dd)/00++
   static async generateQueueNumber(): Promise<string> {
     try {
       const db = await getDatabase();
@@ -44,7 +27,13 @@ export class VehicleDB {
         createdAt: { $gte: startOfDay, $lt: endOfDay },
       });
 
-      const queueNumber = `Q${String(todayCount + 1).padStart(3, "0")}`;
+      // Format: Q/Date(yy/mm/dd)/00++
+      const year = today.getFullYear().toString().slice(-2); // Get last 2 digits
+      const month = String(today.getMonth() + 1).padStart(2, "0");
+      const day = String(today.getDate()).padStart(2, "0");
+      const sequence = String(todayCount + 1).padStart(2, "0");
+
+      const queueNumber = `Q${year}${month}${day}${sequence}`;
       return queueNumber;
     } catch (error) {
       console.error("Error generating queue number:", error);
@@ -68,18 +57,36 @@ export class VehicleDB {
     }
   }
 
+  static async searchVehiclesByTruckNumber(query: string): Promise<Vehicle[]> {
+    try {
+      const db = await getDatabase();
+      const collection = db.collection<Vehicle>(this.collectionName);
+
+      const vehicles = await collection
+        .find({
+          truckNumber: { $regex: new RegExp(query, "i") },
+        })
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .toArray();
+
+      return vehicles;
+    } catch (error) {
+      console.error("Error searching vehicles by truck number:", error);
+      throw error;
+    }
+  }
+
   static async addVehicle(
-    vehicleData: Omit<
-      Vehicle,
-      "_id" | "createdAt" | "updatedAt" | "queueNumber"
-    >
+    vehicleData: VehicleInput
   ): Promise<Vehicle> {
     try {
       const db = await getDatabase();
       const collection = db.collection<Vehicle>(this.collectionName);
 
-      // Generate queue number
-      const queueNumber = await this.generateQueueNumber();
+      // Use provided queue number or generate one
+      const queueNumber =
+        vehicleData.queueNumber || (await this.generateQueueNumber());
 
       const vehicle: Omit<Vehicle, "_id"> = {
         ...vehicleData,

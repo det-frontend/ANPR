@@ -93,13 +93,23 @@ export class AuthService {
     const db = await getDatabase();
     const collection = db.collection<User>(this.collectionName);
 
-    const user = await collection.findOne({ _id: userId });
+    let queryId: any = userId;
+    // Try to convert to ObjectId if possible
+    try {
+      const { ObjectId } = await import("mongodb");
+      if (ObjectId.isValid(userId)) {
+        queryId = new ObjectId(userId);
+      }
+    } catch (e) {
+      // fallback: use string id
+    }
+
+    const user = await collection.findOne({ _id: queryId });
 
     if (!user) {
       return null;
     }
 
-    // Return user without password
     const { password, ...userWithoutPassword } = user;
     return userWithoutPassword;
   }
@@ -128,8 +138,19 @@ export class AuthService {
     const db = await getDatabase();
     const collection = db.collection<User>(this.collectionName);
 
+    let queryId: any = userId;
+    // Try to convert to ObjectId if possible
+    try {
+      const { ObjectId } = await import("mongodb");
+      if (ObjectId.isValid(userId)) {
+        queryId = new ObjectId(userId);
+      }
+    } catch (error) {
+      // If ObjectId import fails, use the string as is
+    }
+
     await collection.updateOne(
-      { _id: userId },
+      { _id: queryId },
       {
         $set: {
           ...updates,
@@ -148,8 +169,19 @@ export class AuthService {
 
     const hashedPassword = await hash(newPassword, 12);
 
+    let queryId: any = userId;
+    // Try to convert to ObjectId if possible
+    try {
+      const { ObjectId } = await import("mongodb");
+      if (ObjectId.isValid(userId)) {
+        queryId = new ObjectId(userId);
+      }
+    } catch (error) {
+      // If ObjectId import fails, use the string as is
+    }
+
     await collection.updateOne(
-      { _id: userId },
+      { _id: queryId },
       {
         $set: {
           password: hashedPassword,
@@ -163,7 +195,18 @@ export class AuthService {
     const db = await getDatabase();
     const collection = db.collection<User>(this.collectionName);
 
-    await collection.deleteOne({ _id: userId });
+    let queryId: any = userId;
+    // Try to convert to ObjectId if possible
+    try {
+      const { ObjectId } = await import("mongodb");
+      if (ObjectId.isValid(userId)) {
+        queryId = new ObjectId(userId);
+      }
+    } catch (error) {
+      // If ObjectId import fails, use the string as is
+    }
+
+    await collection.deleteOne({ _id: queryId });
   }
 
   static async getAllUsers(): Promise<Omit<User, "password">[]> {

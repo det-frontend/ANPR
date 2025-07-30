@@ -21,7 +21,6 @@
   - `201 Created`: `{ success: true, vehicle: { ... } }`
   - `400 Bad Request`: `{ error: "Missing required fields: ..." }`
   - `400 Bad Request`: `{ error: "Tank number must be between 1 and 6" }`
-  - `409 Conflict`: `{ error: "Vehicle with this truck number already exists" }`
   - `500 Internal Server Error`: `{ error: "Internal server error" }`
 
 ---
