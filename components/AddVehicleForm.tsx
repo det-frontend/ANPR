@@ -1,7 +1,17 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { PlusCircle, Save, Truck, Printer, X, Copy, Check } from "lucide-react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import {
+  PlusCircle,
+  Save,
+  Truck,
+  Printer,
+  X,
+  Copy,
+  Check,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +24,8 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 
 import { VehicleResponse } from "@/lib/types";
 import { EventBus, EVENTS } from "@/lib/events";
@@ -23,73 +35,125 @@ interface AddVehicleFormProps {
   queueNumber: string;
   onVehicleAdded: (vehicle: VehicleResponse) => void;
   onCancel?: () => void;
+  isLoadingQueue?: boolean;
 }
+
+// Initial form state
+const getInitialFormState = (plateNumber: string) => ({
+  orderNumber: "",
+  companyName: "",
+  customerName: "",
+  orderDate: new Date().toISOString().slice(0, 16),
+  truckNumber: plateNumber,
+  trailerNumber: "",
+  driverName: "",
+  driverPhoneNumber: "",
+  numberOfDrums: "",
+  amountInLiters: "",
+  tankNumber: "",
+});
+
 export default function AddVehicleForm({
   plateNumber,
   queueNumber,
   onVehicleAdded,
   onCancel,
+  isLoadingQueue = false,
 }: AddVehicleFormProps) {
-  const [formData, setFormData] = useState({
-    orderNumber: "",
-    companyName: "",
-    customerName: "",
-    orderDate: new Date().toISOString().slice(0, 16),
-    truckNumber: plateNumber,
-    trailerNumber: "",
-    driverName: "",
-    driverPhoneNumber: "",
-    numberOfDrums: "",
-    amountInLiters: "",
-    tankNumber: "",
-  });
+  const [formData, setFormData] = useState(() =>
+    getInitialFormState(plateNumber)
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   // Autocomplete state
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setIsSubmitting(true);
+  // Memoized form validation
+  const isFormValid = useMemo(() => {
+    return (
+      formData.orderNumber.trim() &&
+      formData.companyName.trim() &&
+      formData.customerName.trim() &&
+      formData.orderDate &&
+      formData.truckNumber.trim() &&
+      formData.driverName.trim() &&
+      formData.numberOfDrums &&
+      formData.amountInLiters &&
+      formData.tankNumber
+    );
+  }, [formData]);
 
-    try {
-      const response = await fetch("/api/add-vehicle", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...formData,
-          queueNumber,
-          numberOfDrums: Number(formData.numberOfDrums),
-          amountInLiters: Number(formData.amountInLiters),
-          tankNumber: Number(formData.tankNumber),
-        }),
-      });
+  // Memoized form progress
+  const formProgress = useMemo(() => {
+    const requiredFields = [
+      formData.orderNumber,
+      formData.companyName,
+      formData.customerName,
+      formData.orderDate,
+      formData.truckNumber,
+      formData.driverName,
+      formData.numberOfDrums,
+      formData.amountInLiters,
+      formData.tankNumber,
+    ];
+    const filledFields = requiredFields.filter(
+      (field) => field && field.toString().trim()
+    ).length;
+    return Math.round((filledFields / requiredFields.length) * 100);
+  }, [formData]);
 
-      const data = await response.json();
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!isFormValid || isSubmitting) return;
 
-      if (response.ok) {
-        onVehicleAdded(data.vehicle);
-        // Clear form after successful submission
-        handleClearForm();
-        // Publish event to notify other components
-        EventBus.publish(EVENTS.VEHICLE_ADDED, data.vehicle);
-      } else {
-        setError(data.error || "Failed to add vehicle");
+      setError("");
+      setSuccessMessage("");
+      setIsSubmitting(true);
+
+      try {
+        const response = await fetch("/api/add-vehicle", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...formData,
+            queueNumber,
+            numberOfDrums: Number(formData.numberOfDrums),
+            amountInLiters: Number(formData.amountInLiters),
+            tankNumber: Number(formData.tankNumber),
+          }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          onVehicleAdded(data.vehicle);
+          setSuccessMessage("Vehicle added successfully!");
+          handleClearForm();
+          EventBus.publish(EVENTS.VEHICLE_ADDED, data.vehicle);
+
+          // Clear success message after 3 seconds
+          setTimeout(() => setSuccessMessage(""), 3000);
+        } else {
+          setError(data.error || "Failed to add vehicle");
+        }
+      } catch (error) {
+        setError("Network error. Please check your connection and try again.");
+      } finally {
+        setIsSubmitting(false);
       }
-    } catch (error) {
-      setError("Network error. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    },
+    [formData, queueNumber, isFormValid, isSubmitting, onVehicleAdded]
+  );
 
   const handlePrint = () => {
     // Print functionality - you can implement this based on your needs
@@ -105,44 +169,35 @@ export default function AddVehicleForm({
     // }
   };
 
-  const handleCopyQueueNumber = async () => {
+  const handleCopyQueueNumber = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(queueNumber);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000); // Reset after 2 seconds
+      setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       console.error("Failed to copy queue number:", error);
+      setError("Failed to copy queue number to clipboard");
     }
-  };
+  }, [queueNumber]);
 
-  const handleClearForm = () => {
+  const handleClearForm = useCallback(() => {
     // Clear search timeout
-    if ((window as any).searchTimeout) {
-      clearTimeout((window as any).searchTimeout);
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+      searchTimeoutRef.current = null;
     }
 
-    setFormData({
-      orderNumber: "",
-      companyName: "",
-      customerName: "",
-      orderDate: new Date().toISOString().slice(0, 16),
-      truckNumber: plateNumber,
-      trailerNumber: "",
-      driverName: "",
-      driverPhoneNumber: "",
-      numberOfDrums: "",
-      amountInLiters: "",
-      tankNumber: "",
-    });
+    setFormData(getInitialFormState(plateNumber));
     setError("");
+    setSuccessMessage("");
     setCopied(false);
     setSuggestions([]);
     setShowSuggestions(false);
     setIsSearching(false);
-  };
+  }, [plateNumber]);
 
-  // Search vehicles for autocomplete with debounce
-  const searchVehicles = async (query: string) => {
+  // Optimized search with proper cleanup
+  const searchVehicles = useCallback(async (query: string) => {
     if (!query || query.trim().length < 2) {
       setSuggestions([]);
       setShowSuggestions(false);
@@ -150,18 +205,16 @@ export default function AddVehicleForm({
     }
 
     // Clear previous timeout
-    if ((window as any).searchTimeout) {
-      clearTimeout((window as any).searchTimeout);
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
     }
 
-    // Set loading state immediately
     setIsSearching(true);
 
-    // Debounce the search
-    (window as any).searchTimeout = setTimeout(async () => {
+    searchTimeoutRef.current = setTimeout(async () => {
       try {
         const response = await fetch(
-          `/api/search-vehicles?q=${encodeURIComponent(query)}`
+          `/api/search-vehicles?q=${encodeURIComponent(query.trim())}`
         );
         const data = await response.json();
 
@@ -179,23 +232,34 @@ export default function AddVehicleForm({
       } finally {
         setIsSearching(false);
       }
-    }, 300); // 300ms delay
-  };
+    }, 300);
+  }, []);
 
-  // Handle suggestion selection
-  const handleSuggestionSelect = (vehicle: any) => {
-    setFormData({
-      ...formData,
+  const handleSuggestionSelect = useCallback((vehicle: any) => {
+    setFormData((prev) => ({
+      ...prev,
       truckNumber: vehicle.truckNumber,
       trailerNumber: vehicle.trailerNumber || "",
       driverName: vehicle.driverName,
       driverPhoneNumber: vehicle.driverPhoneNumber || "",
       companyName: vehicle.companyName,
       customerName: vehicle.customerName,
-    });
+    }));
     setShowSuggestions(false);
     setSuggestions([]);
-  };
+  }, []);
+
+  const handleInputChange = useCallback(
+    (field: string, value: string) => {
+      setFormData((prev) => ({ ...prev, [field]: value }));
+
+      // Trigger search for truck number field
+      if (field === "truckNumber") {
+        searchVehicles(value);
+      }
+    },
+    [searchVehicles]
+  );
 
   // Handle clicks outside suggestions
   useEffect(() => {
@@ -217,27 +281,39 @@ export default function AddVehicleForm({
   // Cleanup search timeout on unmount
   useEffect(() => {
     return () => {
-      if ((window as any).searchTimeout) {
-        clearTimeout((window as any).searchTimeout);
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
       }
     };
   }, []);
 
+  // Reset form when plateNumber prop changes
+  useEffect(() => {
+    setFormData((prev) => ({ ...prev, truckNumber: plateNumber }));
+  }, [plateNumber]);
+
   return (
     <Card className="bg-gray-800 border-gray-700">
-      {/* <CardHeader>
-        <CardTitle className="text-yellow-400 flex items-center gap-2">
-          <PlusCircle className="h-5 w-5" />
-          New Vehicle Registration
-        </CardTitle>
-        <p className="text-gray-400 text-sm">
-          Vehicle not found in database. Please add vehicle information.
-        </p>
-      </CardHeader> */}
-
       <CardContent>
+        {/* Progress Indicator */}
+        {/* <div className="mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <Label className="text-gray-300 text-sm">Form Progress</Label>
+            <Badge variant="secondary" className="text-xs">
+              {formProgress}% Complete
+            </Badge>
+          </div>
+          <div className="w-full bg-gray-700 rounded-full h-2">
+            <div
+              className="bg-blue-500 h-2 rounded-full transition-all duration-300 ease-out"
+              style={{ width: `${formProgress}%` }}
+            />
+          </div>
+        </div> */}
+
         <form onSubmit={handleSubmit} className="space-y-4 pt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Queue Number */}
             <div>
               <Label htmlFor="queueNumber" className="text-gray-300">
                 Queue Number
@@ -245,28 +321,41 @@ export default function AddVehicleForm({
               <div className="relative">
                 <Input
                   id="queueNumber"
-                  value={queueNumber}
-                  disabled
-                  className="bg-gray-600 border-gray-500 text-gray-300 cursor-text select-all pr-10"
-                  placeholder="Auto-generated queue number"
+                  value={isLoadingQueue ? "" : queueNumber}
+                  disabled={true}
+                  className="bg-gray-600 border-gray-500 text-gray-300 cursor-not-allowed select-all pr-10 opacity-75"
+                  placeholder={
+                    isLoadingQueue
+                      ? "Generating queue number..."
+                      : "Auto-generated queue number"
+                  }
                   readOnly
                 />
-                <Button
-                  type="button"
-                  onClick={handleCopyQueueNumber}
-                  size="sm"
-                  variant="ghost"
-                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-gray-500"
-                  title="Copy queue number"
-                >
-                  {copied ? (
-                    <Check className="h-4 w-4 text-green-400" />
-                  ) : (
-                    <Copy className="h-4 w-4 text-gray-400" />
-                  )}
-                </Button>
+                {isLoadingQueue ? (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    onClick={handleCopyQueueNumber}
+                    size="sm"
+                    variant="ghost"
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-gray-500 transition-colors"
+                    title="Copy queue number"
+                    disabled={copied}
+                  >
+                    {copied ? (
+                      <Check className="h-4 w-4 text-green-400" />
+                    ) : (
+                      <Copy className="h-4 w-4 text-gray-400" />
+                    )}
+                  </Button>
+                )}
               </div>
             </div>
+
+            {/* Order Number */}
             <div>
               <Label htmlFor="orderNumber" className="text-gray-300">
                 Order Number *
@@ -275,13 +364,16 @@ export default function AddVehicleForm({
                 id="orderNumber"
                 value={formData.orderNumber}
                 onChange={(e) =>
-                  setFormData({ ...formData, orderNumber: e.target.value })
+                  handleInputChange("orderNumber", e.target.value)
                 }
                 placeholder="Enter order number"
-                className="bg-gray-700 border-gray-600 text-white"
+                className="bg-gray-700 border-gray-600 text-white focus:border-blue-500 transition-colors"
                 required
+                autoComplete="off"
               />
             </div>
+
+            {/* Company Name */}
             <div>
               <Label htmlFor="companyName" className="text-gray-300">
                 Company Name *
@@ -290,13 +382,16 @@ export default function AddVehicleForm({
                 id="companyName"
                 value={formData.companyName}
                 onChange={(e) =>
-                  setFormData({ ...formData, companyName: e.target.value })
+                  handleInputChange("companyName", e.target.value)
                 }
                 placeholder="Enter company name"
-                className="bg-gray-700 border-gray-600 text-white"
+                className="bg-gray-700 border-gray-600 text-white focus:border-blue-500 transition-colors"
                 required
+                autoComplete="organization"
               />
             </div>
+
+            {/* Customer Name */}
             <div>
               <Label htmlFor="customerName" className="text-gray-300">
                 Customer Name *
@@ -305,13 +400,16 @@ export default function AddVehicleForm({
                 id="customerName"
                 value={formData.customerName}
                 onChange={(e) =>
-                  setFormData({ ...formData, customerName: e.target.value })
+                  handleInputChange("customerName", e.target.value)
                 }
                 placeholder="Enter customer name"
-                className="bg-gray-700 border-gray-600 text-white"
+                className="bg-gray-700 border-gray-600 text-white focus:border-blue-500 transition-colors"
                 required
+                autoComplete="name"
               />
             </div>
+
+            {/* Truck Number with Autocomplete */}
             <div className="relative">
               <Label htmlFor="truckNumber" className="text-gray-300">
                 Truck Number *
@@ -320,28 +418,27 @@ export default function AddVehicleForm({
                 <Input
                   id="truckNumber"
                   value={formData.truckNumber}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setFormData({ ...formData, truckNumber: value });
-                    searchVehicles(value);
-                  }}
+                  onChange={(e) =>
+                    handleInputChange("truckNumber", e.target.value)
+                  }
                   onFocus={() => {
                     if (formData.truckNumber && suggestions.length > 0) {
                       setShowSuggestions(true);
                     }
                   }}
                   placeholder="Enter truck number"
-                  className="bg-gray-700 border-gray-600 text-white pr-10"
+                  className="bg-gray-700 border-gray-600 text-white pr-10 focus:border-blue-500 transition-colors"
                   required
+                  autoComplete="off"
                 />
                 {isSearching && (
                   <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400"></div>
+                    <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
                   </div>
                 )}
               </div>
 
-              {/* Autocomplete Suggestions */}
+              {/* Enhanced Autocomplete Suggestions */}
               {showSuggestions && (
                 <div
                   ref={suggestionsRef}
@@ -349,18 +446,18 @@ export default function AddVehicleForm({
                 >
                   {isSearching ? (
                     <div className="p-3 text-center text-gray-400">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400 mx-auto"></div>
-                      <span className="ml-2">Searching...</span>
+                      <Loader2 className="h-4 w-4 animate-spin mx-auto mb-2" />
+                      <span>Searching...</span>
                     </div>
                   ) : suggestions.length > 0 ? (
                     suggestions.map((vehicle, index) => (
                       <div
                         key={vehicle._id || index}
                         onClick={() => handleSuggestionSelect(vehicle)}
-                        className="p-3 hover:bg-gray-600 cursor-pointer border-b border-gray-600 last:border-b-0"
+                        className="p-3 hover:bg-gray-600 cursor-pointer border-b border-gray-600 last:border-b-0 transition-colors"
                       >
                         <div className="flex items-center justify-between">
-                          <div>
+                          <div className="flex-1">
                             <div className="text-white font-medium">
                               {vehicle.truckNumber}
                             </div>
@@ -371,7 +468,7 @@ export default function AddVehicleForm({
                               Company: {vehicle.companyName}
                             </div>
                           </div>
-                          <div className="text-gray-500 text-xs">
+                          <div className="text-gray-500 text-xs ml-2">
                             {vehicle.trailerNumber &&
                               `Trailer: ${vehicle.trailerNumber}`}
                           </div>
@@ -380,12 +477,15 @@ export default function AddVehicleForm({
                     ))
                   ) : (
                     <div className="p-3 text-center text-gray-400">
+                      <AlertCircle className="h-4 w-4 mx-auto mb-2" />
                       No matching vehicles found
                     </div>
                   )}
                 </div>
               )}
             </div>
+
+            {/* Trailer Number */}
             <div>
               <Label htmlFor="trailerNumber" className="text-gray-300">
                 Trailer Number
@@ -394,13 +494,15 @@ export default function AddVehicleForm({
                 id="trailerNumber"
                 value={formData.trailerNumber}
                 onChange={(e) =>
-                  setFormData({ ...formData, trailerNumber: e.target.value })
+                  handleInputChange("trailerNumber", e.target.value)
                 }
                 placeholder="Enter trailer number (optional)"
-                className="bg-gray-700 border-gray-600 text-white"
+                className="bg-gray-700 border-gray-600 text-white focus:border-blue-500 transition-colors"
+                autoComplete="off"
               />
             </div>
 
+            {/* Driver Name */}
             <div>
               <Label htmlFor="driverName" className="text-gray-300">
                 Driver Name *
@@ -409,30 +511,34 @@ export default function AddVehicleForm({
                 id="driverName"
                 value={formData.driverName}
                 onChange={(e) =>
-                  setFormData({ ...formData, driverName: e.target.value })
+                  handleInputChange("driverName", e.target.value)
                 }
                 placeholder="Enter driver name"
-                className="bg-gray-700 border-gray-600 text-white"
+                className="bg-gray-700 border-gray-600 text-white focus:border-blue-500 transition-colors"
                 required
+                autoComplete="name"
               />
             </div>
+
+            {/* Driver Phone Number */}
             <div>
               <Label htmlFor="driverPhoneNumber" className="text-gray-300">
                 Driver Phone Number
               </Label>
               <Input
                 id="driverPhoneNumber"
+                type="tel"
                 value={formData.driverPhoneNumber}
                 onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    driverPhoneNumber: e.target.value,
-                  })
+                  handleInputChange("driverPhoneNumber", e.target.value)
                 }
                 placeholder="Enter driver phone number (optional)"
-                className="bg-gray-700 border-gray-600 text-white"
+                className="bg-gray-700 border-gray-600 text-white focus:border-blue-500 transition-colors"
+                autoComplete="tel"
               />
             </div>
+
+            {/* Number of Drums */}
             <div>
               <Label htmlFor="numberOfDrums" className="text-gray-300">
                 No. Drum *
@@ -440,15 +546,18 @@ export default function AddVehicleForm({
               <Input
                 id="numberOfDrums"
                 type="number"
+                min="1"
                 value={formData.numberOfDrums}
                 onChange={(e) =>
-                  setFormData({ ...formData, numberOfDrums: e.target.value })
+                  handleInputChange("numberOfDrums", e.target.value)
                 }
                 placeholder="Enter number of drums"
-                className="bg-gray-700 border-gray-600 text-white"
+                className="bg-gray-700 border-gray-600 text-white focus:border-blue-500 transition-colors"
                 required
               />
             </div>
+
+            {/* Order Date */}
             <div>
               <Label htmlFor="orderDate" className="text-gray-300">
                 Order Date *
@@ -457,13 +566,13 @@ export default function AddVehicleForm({
                 id="orderDate"
                 type="datetime-local"
                 value={formData.orderDate}
-                onChange={(e) =>
-                  setFormData({ ...formData, orderDate: e.target.value })
-                }
-                className="bg-gray-700 border-gray-600 text-white"
+                onChange={(e) => handleInputChange("orderDate", e.target.value)}
+                className="bg-gray-700 border-gray-600 text-white focus:border-blue-500 transition-colors"
                 required
               />
             </div>
+
+            {/* Amount in Liters */}
             <div>
               <Label htmlFor="amountInLiters" className="text-gray-300">
                 Amount in (liter) *
@@ -471,15 +580,19 @@ export default function AddVehicleForm({
               <Input
                 id="amountInLiters"
                 type="number"
+                min="1"
+                step="0.01"
                 value={formData.amountInLiters}
                 onChange={(e) =>
-                  setFormData({ ...formData, amountInLiters: e.target.value })
+                  handleInputChange("amountInLiters", e.target.value)
                 }
                 placeholder="Enter amount in liters"
-                className="bg-gray-700 border-gray-600 text-white"
+                className="bg-gray-700 border-gray-600 text-white focus:border-blue-500 transition-colors"
                 required
               />
             </div>
+
+            {/* Tank Number */}
             <div>
               <Label htmlFor="tankNumber" className="text-gray-300">
                 Tank No *
@@ -487,10 +600,10 @@ export default function AddVehicleForm({
               <Select
                 value={formData.tankNumber}
                 onValueChange={(value) =>
-                  setFormData({ ...formData, tankNumber: value })
+                  handleInputChange("tankNumber", value)
                 }
               >
-                <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                <SelectTrigger className="bg-gray-700 border-gray-600 text-white focus:border-blue-500 transition-colors">
                   <SelectValue placeholder="Select tank number" />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-700 border-gray-600">
@@ -498,7 +611,7 @@ export default function AddVehicleForm({
                     <SelectItem
                       key={tank}
                       value={tank.toString()}
-                      className="text-white"
+                      className="text-white hover:bg-gray-600"
                     >
                       Tank {tank}
                     </SelectItem>
@@ -508,69 +621,51 @@ export default function AddVehicleForm({
             </div>
           </div>
 
+          {/* Error Message */}
           {error && (
-            <div className="text-red-400 text-sm bg-red-900/20 p-3 rounded border border-red-800">
-              {error}
-            </div>
+            <Alert className="border-red-800 bg-red-900/20">
+              <AlertCircle className="h-4 w-4 text-red-400" />
+              <AlertDescription className="text-red-400">
+                {error}
+              </AlertDescription>
+            </Alert>
           )}
 
-          {/* First row of buttons */}
-          {/* <div className="flex gap-4">
-            <Button
-              type="submit"
-              disabled={
-                isSubmitting ||
-                !formData.orderNumber ||
-                !formData.companyName ||
-                !formData.customerName ||
-                !formData.orderDate ||
-                !formData.truckNumber ||
-                !formData.driverName ||
-                !formData.numberOfDrums ||
-                !formData.amountInLiters ||
-                !formData.tankNumber
-              }
-              className="flex-1 bg-green-600 hover:bg-green-700"
-            >
-              <Truck className="h-4 w-4 mr-2" />
-              {isSubmitting ? "Adding Vehicle..." : "Add Vehicle"}
-            </Button>
-            <Button
-              type="button"
-              onClick={handlePrint}
-              className="flex-1 bg-blue-700 hover:bg-blue-800"
-            >
-              <Printer className="h-4 w-4 mr-2" />
-              Print
-            </Button>
-          </div> */}
+          {/* Success Message */}
+          {successMessage && (
+            <Alert className="border-green-800 bg-green-900/20">
+              <Check className="h-4 w-4 text-green-400" />
+              <AlertDescription className="text-green-400">
+                {successMessage}
+              </AlertDescription>
+            </Alert>
+          )}
 
-          {/* Buttons */}
+          {/* Action Buttons */}
           <div className="flex gap-4 pt-2">
             <Button
               type="submit"
-              disabled={
-                isSubmitting ||
-                !formData.orderNumber ||
-                !formData.companyName ||
-                !formData.customerName ||
-                !formData.orderDate ||
-                !formData.truckNumber ||
-                !formData.driverName ||
-                !formData.numberOfDrums ||
-                !formData.amountInLiters ||
-                !formData.tankNumber
-              }
-              className="flex-1 bg-blue-500 hover:bg-blue-600"
+              disabled={!isFormValid || isSubmitting}
+              className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
             >
-              <Save className="h-4 w-4 mr-2" />
-              {isSubmitting ? "form submitting ..." : "Submit"}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Submit
+                </>
+              )}
             </Button>
             <Button
               type="button"
               onClick={handleClearForm}
               variant="outline"
-              className="flex-1 bg-gray-600 hover:bg-gray-700 text-white border-gray-500"
+              className="flex-1 bg-gray-600 hover:bg-gray-700 text-white border-gray-500 transition-colors"
+              disabled={isSubmitting}
             >
               <X className="h-4 w-4 mr-2" />
               Clear Form
