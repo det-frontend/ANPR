@@ -92,7 +92,7 @@ export default function Home() {
                 <Shield className="h-7 w-7 sm:h-8 sm:w-8 text-blue-400 flex-shrink-0" />
                 <div className="text-center sm:text-left min-w-0">
                   <h1 className="text-xl sm:text-xl md:text-2xl font-bold text-white truncate">
-                    CCTV ANPR System
+                    ANPR System
                   </h1>
                   <p className="text-gray-400 text-xs sm:text-sm truncate">
                     Automatic Number Plate Recognition
