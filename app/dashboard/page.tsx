@@ -26,6 +26,8 @@ import { useDashboard } from "@/contexts/DashboardContext";
 import { useVehicleInfo } from "@/contexts/VehicleInfoContext";
 import { format, parseISO } from "date-fns";
 import { VehicleResponse } from "@/lib/types";
+import { Pagination } from "@/components/ui/pagination";
+import { usePagination } from "@/hooks/usePagination";
 
 export default function VehicleInfoTable() {
   const [selectedVehicle, setSelectedVehicle] =
@@ -97,6 +99,18 @@ export default function VehicleInfoTable() {
       }
     });
 
+  // Pagination for vehicle info
+  const {
+    currentData: paginatedVehicleInfo,
+    currentPage: vehicleInfoPage,
+    totalPages: vehicleInfoTotalPages,
+    totalItems: vehicleInfoTotalItems,
+    goToPage: goToVehicleInfoPage,
+  } = usePagination({
+    data: filteredVehicleInfo,
+    itemsPerPage: 10,
+  });
+
   return (
     <ProtectedRoute>
       <div className="space-y-6">
@@ -108,8 +122,8 @@ export default function VehicleInfoTable() {
               Vehicle Information
             </CardTitle>
             <CardDescription className="text-gray-400">
-              Showing {filteredVehicleInfo.length} of {vehicleInfo.length}{" "}
-              vehicle information records
+              Showing {vehicleInfoTotalItems} of {vehicleInfo.length} vehicle
+              information records
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -140,7 +154,7 @@ export default function VehicleInfoTable() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredVehicleInfo.map((info) => (
+                    {paginatedVehicleInfo.map((info) => (
                       <TableRow
                         key={info._id}
                         className="border-gray-700 hover:bg-gray-700 cursor-pointer"
@@ -179,7 +193,7 @@ export default function VehicleInfoTable() {
             )}
 
             {!vehicleInfoLoading &&
-              filteredVehicleInfo.length === 0 &&
+              paginatedVehicleInfo.length === 0 &&
               vehicleInfo.length === 0 && (
                 <div className="text-center py-8">
                   <div className="max-w-md mx-auto">
@@ -197,7 +211,7 @@ export default function VehicleInfoTable() {
               )}
 
             {!vehicleInfoLoading &&
-              filteredVehicleInfo.length === 0 &&
+              paginatedVehicleInfo.length === 0 &&
               vehicleInfo.length > 0 && (
                 <div className="text-center py-8">
                   <p className="text-gray-400">
@@ -208,6 +222,18 @@ export default function VehicleInfoTable() {
                   </p>
                 </div>
               )}
+
+            {/* Pagination */}
+            {!vehicleInfoLoading && vehicleInfoTotalPages > 1 && (
+              <Pagination
+                currentPage={vehicleInfoPage}
+                totalPages={vehicleInfoTotalPages}
+                totalItems={vehicleInfoTotalItems}
+                itemsPerPage={10}
+                onPageChange={goToVehicleInfoPage}
+                className="border-t border-gray-700"
+              />
+            )}
           </CardContent>
         </Card>
 

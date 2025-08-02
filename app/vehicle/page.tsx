@@ -49,6 +49,9 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
 import { addDays, format, startOfDay, endOfDay, parseISO } from "date-fns";
 import { DateRange } from "react-day-picker";
+import { Pagination } from "@/components/ui/pagination";
+import { usePagination } from "@/hooks/usePagination";
+import { toast } from "sonner";
 
 interface VehicleInfo {
   _id: string;
@@ -77,10 +80,21 @@ export default function VehiclePage() {
   const [selectedVehicle, setSelectedVehicle] = useState<VehicleInfo | null>(
     null
   );
-  const [newVehicle, setNewVehicle] = useState<VehicleInfo | null>(null);
   const [isOnline, setIsOnline] = useState(true);
 
   const { user, logout } = useAuth();
+
+  // Pagination for vehicles
+  const {
+    currentData: paginatedVehicles,
+    currentPage,
+    totalPages,
+    totalItems,
+    goToPage,
+  } = usePagination({
+    data: filteredVehicles,
+    itemsPerPage: 10,
+  });
 
   // Load vehicles on component mount
   useEffect(() => {
@@ -277,13 +291,12 @@ export default function VehiclePage() {
   };
 
   const handleVehicleAdded = (newVehicle: VehicleInfo) => {
-    setNewVehicle(newVehicle);
+    toast.success("Vehicle Information Registered Successfully!", {
+      description: "The vehicle information has been added to the system.",
+      duration: 5000, // Auto disappear after 5 seconds
+    });
     // Refresh the vehicles list
     fetchVehicles();
-  };
-
-  const resetView = () => {
-    setNewVehicle(null);
   };
 
   const loadSampleData = async () => {
@@ -295,13 +308,23 @@ export default function VehiclePage() {
       if (response.ok) {
         // Refresh the vehicles list
         fetchVehicles();
-        alert("Sample data loaded successfully!");
+        toast.success("Sample data loaded successfully!", {
+          description:
+            "Sample vehicle information has been added to the database.",
+          duration: 5000,
+        });
       } else {
-        alert("Failed to load sample data");
+        toast.error("Failed to load sample data", {
+          description: "Please try again or contact support.",
+          duration: 5000,
+        });
       }
     } catch (error) {
       console.error("Error loading sample data:", error);
-      alert("Error loading sample data");
+      toast.error("Error loading sample data", {
+        description: "Please check your connection and try again.",
+        duration: 5000,
+      });
     }
   };
 
@@ -319,13 +342,23 @@ export default function VehiclePage() {
         if (response.ok) {
           // Refresh the vehicles list
           fetchVehicles();
-          alert("All data cleared successfully!");
+          toast.success("All data cleared successfully!", {
+            description:
+              "All vehicle information has been removed from the database.",
+            duration: 5000,
+          });
         } else {
-          alert("Failed to clear data");
+          toast.error("Failed to clear data", {
+            description: "Please try again or contact support.",
+            duration: 5000,
+          });
         }
       } catch (error) {
         console.error("Error clearing data:", error);
-        alert("Error clearing data");
+        toast.error("Error clearing data", {
+          description: "Please check your connection and try again.",
+          duration: 5000,
+        });
       }
     }
   };
@@ -462,24 +495,6 @@ export default function VehiclePage() {
           {/* New Vehicle Registration */}
           <div className="mb-8">
             <VehicleInfoForm onVehicleAdded={handleVehicleAdded} />
-            {newVehicle && (
-              <div className="mt-4 space-y-4">
-                <div className="bg-green-900 border border-green-700 rounded-lg p-4">
-                  <h3 className="text-lg font-semibold text-green-200 mb-2">
-                    Vehicle Registered Successfully!
-                  </h3>
-                  <p className="text-green-300">
-                    The vehicle has been added to the system.
-                  </p>
-                </div>
-                <button
-                  onClick={resetView}
-                  className="w-full bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition-colors"
-                >
-                  Register Another Vehicle
-                </button>
-              </div>
-            )}
           </div>
 
           {/* Filters */}
@@ -619,7 +634,7 @@ export default function VehiclePage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredVehicles.map((vehicle) => (
+                      {paginatedVehicles.map((vehicle) => (
                         <TableRow
                           key={vehicle._id}
                           className="border-gray-700 hover:bg-gray-700 cursor-pointer"
@@ -667,7 +682,7 @@ export default function VehiclePage() {
               )}
 
               {!isLoading &&
-                filteredVehicles.length === 0 &&
+                paginatedVehicles.length === 0 &&
                 vehicles.length === 0 && (
                   <div className="text-center py-8">
                     <div className="max-w-md mx-auto">
@@ -686,7 +701,7 @@ export default function VehiclePage() {
                 )}
 
               {!isLoading &&
-                filteredVehicles.length === 0 &&
+                paginatedVehicles.length === 0 &&
                 vehicles.length > 0 && (
                   <div className="text-center py-8">
                     <p className="text-gray-400">
@@ -697,6 +712,18 @@ export default function VehiclePage() {
                     </p>
                   </div>
                 )}
+
+              {/* Pagination */}
+              {!isLoading && totalPages > 1 && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={totalItems}
+                  itemsPerPage={10}
+                  onPageChange={goToPage}
+                  className="border-t border-gray-700"
+                />
+              )}
             </CardContent>
           </Card>
         </main>

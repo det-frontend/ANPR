@@ -5,6 +5,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { DashboardProvider } from "@/contexts/DashboardContext";
 import { VehicleInfoProvider } from "@/contexts/VehicleInfoContext";
 import SidebarWrapper from "../components/SidebarWrapper";
+import { Toaster } from "@/components/ui/sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -28,6 +29,7 @@ export default function RootLayout({
             </VehicleInfoProvider>
           </DashboardProvider>
         </AuthProvider>
+        <Toaster position="top-right" richColors />
       </body>
     </html>
   );
