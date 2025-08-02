@@ -11,6 +11,7 @@ import {
   FiBarChart2,
   FiSettings,
   FiLogOut,
+  FiBook,
 } from "react-icons/fi";
 import {
   AlertDialog,
@@ -44,7 +45,14 @@ const links = [
     icon: <FiBarChart2 />,
     roles: ["manager", "admin"],
   },
-  { href: "/user", label: "User", icon: <FiSettings />, roles: ["admin"] },
+  
+  {
+    href: "/manual",
+    label: "Manual",
+    icon: <FiBook />,
+    roles: ["client", "manager", "admin"],
+  },
+  
 ];
 
 const Sidebar = ({
