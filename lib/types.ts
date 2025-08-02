@@ -56,4 +56,19 @@ export interface VehicleInput {
   amountInLiters: number;
   tankNumber: number;
   queueNumber?: string; // Optional, will be auto-generated if not provided
-} 
+}
+
+// Form data interface for AddVehicleForm
+export interface VehicleFormData {
+  orderNumber: string;
+  companyName: string;
+  customerName: string;
+  orderDate: Date;
+  truckNumber: string;
+  trailerNumber: string;
+  driverName: string;
+  driverPhoneNumber: string;
+  numberOfDrums: string;
+  amountInLiters: string;
+  tankNumber: string;
+}

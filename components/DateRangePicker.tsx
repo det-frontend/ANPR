@@ -195,6 +195,7 @@ export const DatePickerWithRange = React.memo<DatePickerWithRangeProps>(
               <Calendar
                 initialFocus
                 mode="range"
+                
                 defaultMonth={date?.from}
                 selected={date}
                 onSelect={handleDateSelect}

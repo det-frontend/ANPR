@@ -26,8 +26,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { DateTimePicker } from "@/components/ui/datetime-picker";
 
-import { VehicleResponse } from "@/lib/types";
+import { VehicleResponse, VehicleFormData } from "@/lib/types";
 import { EventBus, EVENTS } from "@/lib/events";
 
 interface AddVehicleFormProps {
@@ -43,7 +44,7 @@ const getInitialFormState = (plateNumber: string) => ({
   orderNumber: "",
   companyName: "",
   customerName: "",
-  orderDate: new Date().toISOString().slice(0, 16),
+  orderDate: new Date(), // Set to current date and time
   truckNumber: plateNumber,
   trailerNumber: "",
   driverName: "",
@@ -60,7 +61,7 @@ export default function AddVehicleForm({
   onCancel,
   isLoadingQueue = false,
 }: AddVehicleFormProps) {
-  const [formData, setFormData] = useState(() =>
+  const [formData, setFormData] = useState<VehicleFormData>(() =>
     getInitialFormState(plateNumber)
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -81,7 +82,7 @@ export default function AddVehicleForm({
       formData.orderNumber.trim() &&
       formData.companyName.trim() &&
       formData.customerName.trim() &&
-      formData.orderDate &&
+      formData.orderDate instanceof Date &&
       formData.truckNumber.trim() &&
       formData.driverName.trim() &&
       formData.numberOfDrums &&
@@ -96,7 +97,9 @@ export default function AddVehicleForm({
       formData.orderNumber,
       formData.companyName,
       formData.customerName,
-      formData.orderDate,
+      formData.orderDate instanceof Date
+        ? formData.orderDate.toISOString()
+        : formData.orderDate,
       formData.truckNumber,
       formData.driverName,
       formData.numberOfDrums,
@@ -126,6 +129,10 @@ export default function AddVehicleForm({
           },
           body: JSON.stringify({
             ...formData,
+            orderDate:
+              formData.orderDate instanceof Date
+                ? formData.orderDate.toISOString()
+                : formData.orderDate,
             queueNumber,
             numberOfDrums: Number(formData.numberOfDrums),
             amountInLiters: Number(formData.amountInLiters),
@@ -214,7 +221,7 @@ export default function AddVehicleForm({
     searchTimeoutRef.current = setTimeout(async () => {
       try {
         const response = await fetch(
-          `/api/search-vehicles?q=${encodeURIComponent(query.trim())}`
+          `/api/vehicle-info/search?q=${encodeURIComponent(query.trim())}`
         );
         const data = await response.json();
 
@@ -226,7 +233,7 @@ export default function AddVehicleForm({
           setShowSuggestions(false);
         }
       } catch (error) {
-        console.error("Error searching vehicles:", error);
+        console.error("Error searching vehicle info:", error);
         setSuggestions([]);
         setShowSuggestions(false);
       } finally {
@@ -238,10 +245,10 @@ export default function AddVehicleForm({
   const handleSuggestionSelect = useCallback((vehicle: any) => {
     setFormData((prev) => ({
       ...prev,
-      truckNumber: vehicle.truckNumber,
+      truckNumber: vehicle.vehicleNumber, // vehicle-info uses vehicleNumber
       trailerNumber: vehicle.trailerNumber || "",
       driverName: vehicle.driverName,
-      driverPhoneNumber: vehicle.driverPhoneNumber || "",
+      driverPhoneNumber: vehicle.driverPhone || "", // vehicle-info uses driverPhone
       companyName: vehicle.companyName,
       customerName: vehicle.customerName,
     }));
@@ -250,11 +257,11 @@ export default function AddVehicleForm({
   }, []);
 
   const handleInputChange = useCallback(
-    (field: string, value: string) => {
+    (field: string, value: string | Date) => {
       setFormData((prev) => ({ ...prev, [field]: value }));
 
       // Trigger search for truck number field
-      if (field === "truckNumber") {
+      if (field === "truckNumber" && typeof value === "string") {
         searchVehicles(value);
       }
     },
@@ -447,7 +454,7 @@ export default function AddVehicleForm({
                   {isSearching ? (
                     <div className="p-3 text-center text-gray-400">
                       <Loader2 className="h-4 w-4 animate-spin mx-auto mb-2" />
-                      <span>Searching...</span>
+                      <span>Searching vehicle info...</span>
                     </div>
                   ) : suggestions.length > 0 ? (
                     suggestions.map((vehicle, index) => (
@@ -459,7 +466,7 @@ export default function AddVehicleForm({
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
                             <div className="text-white font-medium">
-                              {vehicle.truckNumber}
+                              {vehicle.vehicleNumber}
                             </div>
                             <div className="text-gray-400 text-sm">
                               Driver: {vehicle.driverName}
@@ -478,7 +485,7 @@ export default function AddVehicleForm({
                   ) : (
                     <div className="p-3 text-center text-gray-400">
                       <AlertCircle className="h-4 w-4 mx-auto mb-2" />
-                      No matching vehicles found
+                      No matching vehicle info found
                     </div>
                   )}
                 </div>
@@ -562,13 +569,17 @@ export default function AddVehicleForm({
               <Label htmlFor="orderDate" className="text-gray-300">
                 Order Date *
               </Label>
-              <Input
-                id="orderDate"
-                type="datetime-local"
-                value={formData.orderDate}
-                onChange={(e) => handleInputChange("orderDate", e.target.value)}
-                className="bg-gray-700 border-gray-600 text-white focus:border-blue-500 transition-colors"
-                required
+              <DateTimePicker
+                value={
+                  formData.orderDate instanceof Date
+                    ? formData.orderDate
+                    : undefined
+                }
+                onChange={(date) =>
+                  handleInputChange("orderDate", date || new Date())
+                }
+                placeholder="Select order date and time"
+                className="w-full"
               />
             </div>
 

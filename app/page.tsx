@@ -16,6 +16,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { VehicleResponse } from "@/lib/types";
 import { EventBus, EVENTS } from "@/lib/events";
+import { toast } from "sonner";
 
 // Memoized header component
 const AppHeader = React.memo<{ user: any }>(({ user }) => (
@@ -56,30 +57,7 @@ const AppHeader = React.memo<{ user: any }>(({ user }) => (
 
 AppHeader.displayName = "AppHeader";
 
-// Memoized success message component
-const SuccessMessage = React.memo<{ onReset: () => void }>(({ onReset }) => (
-  <div className="space-y-4">
-    <div className="bg-green-900 border border-green-700 rounded-lg p-4">
-      <h3 className="text-lg font-semibold text-green-200 mb-2">
-        Vehicle Entry Registered Successfully!
-      </h3>
-      <p className="text-green-300">
-        The vehicle has been added to the system.
-      </p>
-    </div>
-    <button
-      onClick={onReset}
-      className="w-full bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition-colors"
-    >
-      Register Another Vehicle
-    </button>
-  </div>
-));
-
-SuccessMessage.displayName = "SuccessMessage";
-
 const Home = React.memo(() => {
-  const [vehicle, setVehicle] = useState<VehicleResponse | null>(null);
   const [isOnline, setIsOnline] = useState(true);
   const [queueNumber, setQueueNumber] = useState<string>("");
   const [isLoadingQueue, setIsLoadingQueue] = useState(true);
@@ -104,12 +82,10 @@ const Home = React.memo(() => {
 
   // Memoized vehicle added handler
   const handleVehicleAdded = useCallback((newVehicle: VehicleResponse) => {
-    setVehicle(newVehicle);
-  }, []);
-
-  // Memoized reset view handler
-  const resetView = useCallback(() => {
-    setVehicle(null);
+    toast.success("Vehicle Entry Registered Successfully!", {
+      description: "The vehicle entry has been added to the system.",
+      duration: 5000, // Auto disappear after 5 seconds
+    });
   }, []);
 
   // Memoized online status handlers
@@ -172,8 +148,6 @@ const Home = React.memo(() => {
                 isLoadingQueue={isLoadingQueue}
               />
             </div>
-
-            {vehicle && <SuccessMessage onReset={resetView} />}
           </div>
 
           {/* Right Column - Recent Vehicles */}
@@ -183,7 +157,7 @@ const Home = React.memo(() => {
         </div>
       </main>
     ),
-    [vehicle, queueNumber, isLoadingQueue, handleVehicleAdded, resetView]
+    [queueNumber, isLoadingQueue, handleVehicleAdded]
   );
 
   return (

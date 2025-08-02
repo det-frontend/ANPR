@@ -22,11 +22,25 @@ import VehicleInfoModal from "@/components/VehicleInfoModal";
 import { useDashboard } from "@/contexts/DashboardContext";
 import { format, parseISO } from "date-fns";
 import { VehicleResponse } from "@/lib/types";
+import { Pagination } from "@/components/ui/pagination";
+import { usePagination } from "@/hooks/usePagination";
 
 export default function VehicleEntriesTable() {
   const [selectedVehicle, setSelectedVehicle] =
     useState<VehicleResponse | null>(null);
   const { filteredVehicles, isLoading, vehicles } = useDashboard();
+
+  // Pagination for vehicle entries
+  const {
+    currentData: paginatedVehicles,
+    currentPage,
+    totalPages,
+    totalItems,
+    goToPage,
+  } = usePagination({
+    data: filteredVehicles,
+    itemsPerPage: 30,
+  });
 
   return (
     <Card className="bg-gray-800 border-gray-700">
@@ -36,7 +50,7 @@ export default function VehicleEntriesTable() {
           Vehicle Entries
         </CardTitle>
         <CardDescription className="text-gray-400">
-          Showing {filteredVehicles.length} of {vehicles.length} vehicle entries
+          Showing {totalItems} of {vehicles.length} vehicle entries
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -62,7 +76,7 @@ export default function VehicleEntriesTable() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredVehicles.map((vehicle) => (
+                {paginatedVehicles.map((vehicle) => (
                   <TableRow
                     key={vehicle._id}
                     className="border-gray-700 hover:bg-gray-700 cursor-pointer"
@@ -113,7 +127,7 @@ export default function VehicleEntriesTable() {
         )}
 
         {!isLoading &&
-          filteredVehicles.length === 0 &&
+          paginatedVehicles.length === 0 &&
           vehicles.length === 0 && (
             <div className="text-center py-8">
               <div className="max-w-md mx-auto">
@@ -130,15 +144,29 @@ export default function VehicleEntriesTable() {
             </div>
           )}
 
-        {!isLoading && filteredVehicles.length === 0 && vehicles.length > 0 && (
-          <div className="text-center py-8">
-            <p className="text-gray-400">
-              No vehicle entries found matching your current filters.
-            </p>
-            <p className="text-gray-500 text-sm mt-2">
-              Try adjusting your search criteria or date range.
-            </p>
-          </div>
+        {!isLoading &&
+          paginatedVehicles.length === 0 &&
+          vehicles.length > 0 && (
+            <div className="text-center py-8">
+              <p className="text-gray-400">
+                No vehicle entries found matching your current filters.
+              </p>
+              <p className="text-gray-500 text-sm mt-2">
+                Try adjusting your search criteria or date range.
+              </p>
+            </div>
+          )}
+
+        {/* Pagination */}
+        {!isLoading && totalPages > 1 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={30}
+            onPageChange={goToPage}
+            className="border-t border-gray-700"
+          />
         )}
       </CardContent>
 

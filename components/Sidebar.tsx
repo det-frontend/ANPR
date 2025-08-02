@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,6 +12,17 @@ import {
   FiSettings,
   FiLogOut,
 } from "react-icons/fi";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 // Define links with required roles
 const links = [
@@ -44,6 +56,7 @@ const Sidebar = ({
 }) => {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
   // Get user role from auth context, fallback to "client" if not available
   const userRole = user?.role || "client";
@@ -56,6 +69,11 @@ const Sidebar = ({
     } catch (error) {
       console.error("Logout failed:", error);
     }
+  };
+
+  const handleLogoutConfirm = async () => {
+    setShowLogoutDialog(false);
+    await handleLogout();
   };
 
   return (
@@ -115,20 +133,43 @@ const Sidebar = ({
       <div className="border-t border-gray-700 my-4 mx-4" />
       {/* Logout */}
       <div className="mb-4 px-4">
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-3 px-2 py-2 rounded hover:bg-gray-700 text-gray-200 transition-colors group relative w-full text-left"
-        >
-          <span className="text-xl">
-            <FiLogOut />
-          </span>
-          {!collapsed && <span>Logout</span>}
-          {collapsed && (
-            <span className="absolute left-full ml-2 w-max opacity-0 group-hover:opacity-100 bg-gray-800 text-xs rounded px-2 py-1 pointer-events-none transition-opacity text-white shadow">
-              Logout
-            </span>
-          )}
-        </button>
+        <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+          <AlertDialogTrigger asChild>
+            <button className="flex items-center gap-3 px-2 py-2 rounded hover:bg-gray-700 text-gray-200 transition-colors group relative w-full text-left">
+              <span className="text-xl">
+                <FiLogOut />
+              </span>
+              {!collapsed && <span>Logout</span>}
+              {collapsed && (
+                <span className="absolute left-full ml-2 w-max opacity-0 group-hover:opacity-100 bg-gray-800 text-xs rounded px-2 py-1 pointer-events-none transition-opacity text-white shadow">
+                  Logout
+                </span>
+              )}
+            </button>
+          </AlertDialogTrigger>
+          <AlertDialogContent className="bg-gray-800 border-gray-700">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-white">
+                Confirm Logout
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-gray-300">
+                Are you sure you want to logout? You will be redirected to the
+                login page.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600">
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleLogoutConfirm}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                Logout
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </aside>
   );
