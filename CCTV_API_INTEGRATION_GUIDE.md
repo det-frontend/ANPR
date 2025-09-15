@@ -60,7 +60,7 @@ Content-Type: application/json
 {
   "plateNumber": "TRK-001",
   "timestamp": "2024-01-15T10:30:00.000Z",
-  "cameraId": "CAM-001",
+  "ipAddress": "192.168.1.101",
   "cameraName": "Main Entrance Camera",
   "location": "Main Entrance",
   "zone": "Zone A",
@@ -73,7 +73,7 @@ Content-Type: application/json
 
 - `plateNumber` (string): Detected license plate number
 - `timestamp` (string): ISO 8601 timestamp of detection
-- `cameraId` (string): Unique camera identifier (must exist in our system)
+- `ipAddress` (string): Camera IP address (must exist in our system)
 
 **Optional Fields:**
 
@@ -114,7 +114,7 @@ Content-Type: application/json
   "event": {
     "_id": "65a1b2c3d4e5f6789abcdef0",
     "plateNumber": "TRK-001",
-    "cameraId": "CAM-001",
+    "ipAddress": "192.168.1.101",
     "action": "open",
     "vehicleFound": true
   }
@@ -127,7 +127,7 @@ Content-Type: application/json
 
 ```json
 {
-  "error": "Missing required fields: plateNumber, timestamp, and cameraId are required"
+  "error": "Missing required fields: plateNumber, timestamp, and ipAddress are required"
 }
 ```
 
@@ -135,7 +135,7 @@ Content-Type: application/json
 
 ```json
 {
-  "error": "Camera CAM-001 not found in system"
+  "error": "Camera 192.168.1.101 not found in system"
 }
 ```
 
@@ -233,12 +233,13 @@ Content-Type: application/json
 - **Timezone:** UTC recommended
 - **Precision:** Millisecond precision
 
-### Camera ID Format
+### Camera IP Format
 
-- **Format:** `CAM-XXX` where XXX is a 3-digit number
-- **Examples:** `CAM-001`, `CAM-002`, `CAM-999`
+- **Format:** IPv4 address (xxx.xxx.xxx.xxx)
+- **Examples:** `192.168.1.101`, `10.0.0.50`, `172.16.1.25`
 - **Uniqueness:** Must be unique across the system
 - **Registration:** Must be registered before use
+- **Network:** Should be accessible from the ANPR system
 
 ### Confidence Score
 
@@ -395,7 +396,7 @@ curl -X POST http://localhost:3000/api/cctv/plate-recognition \
   -d '{
     "plateNumber": "TRK-001",
     "timestamp": "2024-01-15T10:30:00.000Z",
-    "cameraId": "CAM-001",
+    "ipAddress": "192.168.1.101",
     "confidence": 0.95
   }'
 ```
@@ -438,12 +439,12 @@ class CCTVIntegration:
         self.base_url = base_url
         self.api_endpoint = f"{base_url}/api/cctv/plate-recognition"
 
-    def send_plate_detection(self, plate_number, camera_id, confidence=0.95, image_url=None):
+    def send_plate_detection(self, plate_number, camera_ip, confidence=0.95, image_url=None):
         """Send plate detection to ANPR system"""
         data = {
             "plateNumber": plate_number,
             "timestamp": datetime.utcnow().isoformat() + "Z",
-            "cameraId": camera_id,
+            "ipAddress": camera_ip,
             "confidence": confidence
         }
 
@@ -479,7 +480,7 @@ class CCTVIntegration:
         except:
             return []
 
-    def process_video_stream(self, camera_id, stream_url):
+    def process_video_stream(self, camera_ip, stream_url):
         """Process video stream and send plate detections"""
         cap = cv2.VideoCapture(stream_url)
 
@@ -492,7 +493,7 @@ class CCTVIntegration:
             plate_number, confidence = self.recognize_plate(frame)
 
             if plate_number and confidence > 0.7:
-                self.send_plate_detection(plate_number, camera_id, confidence)
+                self.send_plate_detection(plate_number, camera_ip, confidence)
 
             # Display frame (optional)
             cv2.imshow('CCTV Stream', frame)
@@ -512,7 +513,7 @@ class CCTVIntegration:
 cctv = CCTVIntegration()
 
 # Send a test detection
-result = cctv.send_plate_detection("TRK-001", "CAM-001", 0.95)
+result = cctv.send_plate_detection("TRK-001", "192.168.1.101", 0.95)
 if result:
     print(f"Gate action: {result['gateControl']['action']}")
     print(f"Message: {result['gateControl']['message']}")
@@ -532,14 +533,14 @@ class CCTVIntegration {
 
   async sendPlateDetection(
     plateNumber,
-    cameraId,
+    ipAddress,
     confidence = 0.95,
     imageUrl = null
   ) {
     const data = {
       plateNumber,
       timestamp: new Date().toISOString(),
-      cameraId,
+      ipAddress,
       confidence,
     };
 
@@ -578,7 +579,7 @@ class CCTVIntegration {
     }
   }
 
-  async processVideoStream(cameraId, streamUrl) {
+  async processVideoStream(ipAddress, streamUrl) {
     const cap = new cv.VideoCapture(streamUrl);
 
     while (true) {
@@ -589,7 +590,7 @@ class CCTVIntegration {
       const { plateNumber, confidence } = await this.recognizePlate(frame);
 
       if (plateNumber && confidence > 0.7) {
-        await this.sendPlateDetection(plateNumber, cameraId, confidence);
+        await this.sendPlateDetection(plateNumber, ipAddress, confidence);
       }
 
       // Display frame (optional)
@@ -612,7 +613,7 @@ class CCTVIntegration {
 const cctv = new CCTVIntegration();
 
 // Send a test detection
-cctv.sendPlateDetection("TRK-001", "CAM-001", 0.95).then((result) => {
+cctv.sendPlateDetection("TRK-001", "192.168.1.101", 0.95).then((result) => {
   if (result) {
     console.log(`Gate action: ${result.gateControl.action}`);
     console.log(`Message: ${result.gateControl.message}`);

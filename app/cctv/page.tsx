@@ -87,6 +87,8 @@ interface Camera {
   targetGateIds: string[];
 }
 
+
+
 export default function CCTVMonitoringPage() {
   const { user } = useAuth();
   const [events, setEvents] = useState<CCTVEvent[]>([]);
@@ -182,6 +184,7 @@ export default function CCTVMonitoringPage() {
     }
   }, [fetchEvents, fetchGates, fetchCameras]);
 
+
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
@@ -210,6 +213,9 @@ export default function CCTVMonitoringPage() {
 
     return matchesSearch && matchesAction && matchesZone;
   });
+
+  console.log(filteredEvents,"this is data")
+
 
   const uniqueZones = Array.from(
     new Set([
@@ -490,10 +496,10 @@ export default function CCTVMonitoringPage() {
                       <TableHead className="text-gray-300">Zone</TableHead>
                       <TableHead className="text-gray-300">Action</TableHead>
                       <TableHead className="text-gray-300">
-                        Target Gate
+                        Confidence
                       </TableHead>
                       <TableHead className="text-gray-300">
-                        Confidence
+                        Status
                       </TableHead>
                     </TableRow>
                   </TableHeader>
@@ -519,6 +525,9 @@ export default function CCTVMonitoringPage() {
                         </TableCell>
                         <TableCell className="text-gray-300">
                           {event.location}
+                        </TableCell>
+                        <TableCell className="text-gray-300">
+                          {event.zone}
                         </TableCell>
                         <TableCell className="flex items-center gap-2">
                           {getActionIcon(event.action)}

@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 interface CCTVPlateData {
   plateNumber: string;
   timestamp: string;
-  cameraId: string;
+  ipAddress: string;
   cameraName?: string;
   location?: string;
   zone?: string;
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     const {
       plateNumber,
       timestamp,
-      cameraId,
+      ipAddress,
       cameraName,
       location,
       zone,
@@ -42,31 +42,32 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Validate required fields
-    if (!plateNumber || !timestamp || !cameraId) {
+    if (!plateNumber || !timestamp || !ipAddress) {
       return NextResponse.json(
         {
           error:
-            "Missing required fields: plateNumber, timestamp, and cameraId are required",
+            "Missing required fields: plateNumber, timestamp, and ipAddress are required",
         },
         { status: 400 }
       );
     }
 
-    // Get camera information
-    const camera = await CCTVEventDBInstance.getCameraById(cameraId);
+    // Get camera information by IP
+    const camera = await CCTVEventDBInstance.getCameraByIp(ipAddress);
     if (!camera) {
       return NextResponse.json(
-        { error: `Camera ${cameraId} not found in system` },
+        { error: `Camera ${ipAddress} not found in system` },
         { status: 404 }
       );
     }
 
     // Get target gates for this camera
-    const targetGates =
-      await CCTVEventDBInstance.getTargetGatesForCamera(cameraId);
+    const targetGates = await CCTVEventDBInstance.getTargetGatesForCamera(
+      camera.cameraId
+    );
     if (targetGates.length === 0) {
       return NextResponse.json(
-        { error: `No target gates configured for camera ${cameraId}` },
+        { error: `No target gates configured for camera ${ipAddress}` },
         { status: 400 }
       );
     }
@@ -75,7 +76,8 @@ export async function POST(request: NextRequest) {
     console.log(
       `CCTV Detection: Plate ${plateNumber} detected at ${timestamp}`,
       {
-        cameraId,
+        ipAddress,
+        cameraId: camera.cameraId,
         cameraName: cameraName || camera.cameraName,
         location: location || camera.location,
         zone: zone || camera.zone,
@@ -114,7 +116,7 @@ export async function POST(request: NextRequest) {
             plateNumber,
             operatorId: "CCTV System",
             reason: "Automatic gate opening for registered vehicle",
-            cameraId,
+            cameraId: camera.cameraId,
             cameraName: cameraName || camera.cameraName,
             timestamp: new Date(),
             success: true,
@@ -166,7 +168,7 @@ export async function POST(request: NextRequest) {
     const cctvEvent = await CCTVEventDBInstance.addCCTVEvent({
       plateNumber,
       timestamp: new Date(timestamp),
-      cameraId,
+      cameraId: camera.cameraId,
       cameraName: cameraName || camera.cameraName,
       location: location || camera.location,
       zone: zone || camera.zone,

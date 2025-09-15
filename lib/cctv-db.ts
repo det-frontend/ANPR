@@ -293,6 +293,16 @@ class CCTVEventDB {
     }
   }
 
+  public async getCameraByIp(ipAddress: string): Promise<Camera | null> {
+    try {
+      const camera = await this.cameras.findOne({ ipAddress });
+      return camera ? { ...camera, _id: camera._id?.toString() } : null;
+    } catch (error) {
+      console.error("Error getting camera by IP:", error);
+      throw error;
+    }
+  }
+
   public async updateCamera(
     cameraId: string,
     updates: Partial<Camera>

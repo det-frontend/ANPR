@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     const cctvData = {
       plateNumber,
       timestamp: new Date().toISOString(),
-      cameraId: "CAM-001",
+      ipAddress: "192.168.1.101",
       cameraName: "Main Entrance Camera",
       location: "Main Entrance",
       zone: "Zone A",
