@@ -39,7 +39,7 @@ CCTV System → Plate Recognition → API Call → ANPR System → Gate Control
 
 ```
 Production: https://your-domain.com/api/cctv
-Development: http://localhost:3000/api/cctv
+Development: http://192.168.1.165:3000/api/cctv
 ```
 
 ### 1. Plate Recognition Endpoint
@@ -287,7 +287,7 @@ def send_plate_detection_with_retry(data, max_retries=3):
     for attempt in range(max_retries):
         try:
             response = requests.post(
-                "http://localhost:3000/api/cctv/plate-recognition",
+                "http://192.168.1.165:3000/api/cctv/plate-recognition",
                 json=data,
                 timeout=10
             )
@@ -379,19 +379,19 @@ def process_camera_stream(camera_id, stream_url):
 **1. Seed Sample Data:**
 
 ```bash
-curl -X POST http://localhost:3000/api/cctv/seed
+curl -X POST http://192.168.1.165:3000/api/cctv/seed
 ```
 
 **2. Verify Cameras:**
 
 ```bash
-curl http://localhost:3000/api/cctv/cameras
+curl http://192.168.1.165:3000/api/cctv/cameras
 ```
 
 **3. Test Plate Recognition:**
 
 ```bash
-curl -X POST http://localhost:3000/api/cctv/plate-recognition \
+curl -X POST http://192.168.1.165:3000/api/cctv/plate-recognition \
   -H "Content-Type: application/json" \
   -d '{
     "plateNumber": "TRK-001",
@@ -435,7 +435,7 @@ import cv2
 import numpy as np
 
 class CCTVIntegration:
-    def __init__(self, base_url="http://localhost:3000"):
+    def __init__(self, base_url="http://192.168.1.165:3000"):
         self.base_url = base_url
         self.api_endpoint = f"{base_url}/api/cctv/plate-recognition"
 
@@ -526,7 +526,7 @@ const axios = require("axios");
 const cv = require("opencv4nodejs");
 
 class CCTVIntegration {
-  constructor(baseUrl = "http://localhost:3000") {
+  constructor(baseUrl = "http://192.168.1.165:3000") {
     this.baseUrl = baseUrl;
     this.apiEndpoint = `${baseUrl}/api/cctv/plate-recognition`;
   }
@@ -663,7 +663,7 @@ NODE_ENV=development
 **API Health Check:**
 
 ```bash
-curl http://localhost:3000/api/cctv/cameras
+curl http://192.168.1.165:3000/api/cctv/cameras
 ```
 
 **Event Logs:**

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import mqtt from "mqtt";
 import { VehicleDB } from "@/lib/db-helper";
 import { VehicleInfoDB } from "@/lib/vehicle-info-db";
 import { CCTVEventDBInstance } from "@/lib/cctv-db";
+import { MqttClient } from "mqtt";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +27,65 @@ interface GateControlResponse {
     gateName: string;
     gateStatus: "opening" | "closing" | "open" | "closed";
   }>;
+}
+
+// Lazy MQTT client for publishing plate events
+let mqttClient: MqttClient | null = null;
+function getMqttClient(): MqttClient | null {
+  if (mqttClient) return mqttClient;
+  const host = process.env.MQTT_HOST;
+  if (!host) {
+    console.warn("MQTT disabled: MQTT_HOST not set");
+    return null;
+  }
+  const protocol = process.env.MQTT_SSL === "true" ? "mqtts" : "mqtt";
+  const port = process.env.MQTT_PORT ? `:${process.env.MQTT_PORT}` : "";
+  const url = `${protocol}://${host}${port}`;
+  try {
+    mqttClient = mqtt.connect(url, {
+      username: process.env.MQTT_USERNAME,
+      password: process.env.MQTT_PASSWORD,
+      connectTimeout: 5000,
+      reconnectPeriod: 5000,
+      clean: true,
+      keepalive: 60,
+    });
+    mqttClient.on("connect", () => {
+      console.log("MQTT connected", { url, topic: process.env.MQTT_TOPIC_PLATE || "anpr/plate" });
+    });
+    mqttClient.on("error", (err) => {
+      console.error("MQTT error:", err);
+    });
+    return mqttClient;
+  } catch (err) {
+    console.error("Failed to initialize MQTT client:", err);
+    return null;
+  }
+}
+
+async function publishPlateToMqtt(message: Record<string, unknown>) {
+  const client = getMqttClient();
+  if (!client) {
+    console.warn("MQTT publish skipped: client not available");
+    return;
+  }
+  const topic = process.env.MQTT_TOPIC_PLATE || "anpr/plate";
+  const payload = JSON.stringify(message);
+  await new Promise<void>((resolve) => {
+    try {
+      client.publish(topic, payload, { qos: 1, retain: false }, (err) => {
+        if (err) {
+          console.error("MQTT publish error:", err);
+        } else {
+          console.log(`MQTT published to ${topic}:`, message);
+        }
+        resolve();
+      });
+    } catch (err) {
+      console.error("MQTT publish threw:", err);
+      resolve();
+    }
+  });
 }
 
 export async function POST(request: NextRequest) {
@@ -181,6 +242,17 @@ export async function POST(request: NextRequest) {
       targetGateName: targetGates[0]?.gateName,
       gateStatus: gateResponse.targetGates[0]?.gateStatus || "closed",
     });
+
+    // Publish plate to MQTT (non-blocking for API logic)
+    publishPlateToMqtt({
+      plateNumber,
+      timestamp,
+      cameraId: camera.cameraId,
+      cameraName: camera.cameraName,
+      action: gateResponse.action,
+      gates: gateResponse.targetGates,
+      vehicleFound: !!(vehicle || vehicleInfo),
+    }).catch((err) => console.error("MQTT publish failed:", err));
 
     return NextResponse.json({
       success: true,

@@ -100,5 +100,8 @@
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=8.0.0"
+  },
+  "devDependencies": {
+    "@types/mqtt": "^0.0.34"
   }
 }
