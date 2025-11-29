@@ -29,11 +29,13 @@ interface GateControlResponse {
   }>;
 }
 
+console.log(process.env.MQTT_SSL, "this is ");
+
 // Lazy MQTT client for publishing plate events
 let mqttClient: MqttClient | null = null;
 function getMqttClient(): MqttClient | null {
   if (mqttClient) return mqttClient;
-  const host = process.env.MQTT_HOST;
+  const host = process.env.MQTT_HOST || "192.168.1.146";
   if (!host) {
     console.warn("MQTT disabled: MQTT_HOST not set");
     return null;
@@ -51,7 +53,10 @@ function getMqttClient(): MqttClient | null {
       keepalive: 60,
     });
     mqttClient.on("connect", () => {
-      console.log("MQTT connected", { url, topic: process.env.MQTT_TOPIC_PLATE || "anpr/plate" });
+      console.log("MQTT connected", {
+        url,
+        topic: process.env.MQTT_TOPIC_PLATE || "anpr/plate",
+      });
     });
     mqttClient.on("error", (err) => {
       console.error("MQTT error:", err);
@@ -70,7 +75,7 @@ async function publishPlateToMqtt(message: Record<string, unknown>) {
     return;
   }
   const topic = process.env.MQTT_TOPIC_PLATE || "anpr/plate";
-  const payload = JSON.stringify(message);
+  const payload = message.plateNumber as string;
   await new Promise<void>((resolve) => {
     try {
       client.publish(topic, payload, { qos: 1, retain: false }, (err) => {
@@ -200,7 +205,9 @@ export async function POST(request: NextRequest) {
 
       // Log successful entry
       console.log(
-        `Gates opened for registered vehicle: ${plateNumber} at gates: ${targetGates.map((g) => g.gateName).join(", ")}`
+        `Gates opened for registered vehicle: ${plateNumber} at gates: ${targetGates
+          .map((g) => g.gateName)
+          .join(", ")}`
       );
 
       // Here you would integrate with your actual gate control system
@@ -244,15 +251,18 @@ export async function POST(request: NextRequest) {
     });
 
     // Publish plate to MQTT (non-blocking for API logic)
-    publishPlateToMqtt({
-      plateNumber,
-      timestamp,
-      cameraId: camera.cameraId,
-      cameraName: camera.cameraName,
-      action: gateResponse.action,
-      gates: gateResponse.targetGates,
-      vehicleFound: !!(vehicle || vehicleInfo),
-    }).catch((err) => console.error("MQTT publish failed:", err));
+    publishPlateToMqtt({ plateNumber }).catch((err) =>
+      console.error("MQTT publish failed:", err)
+    );
+    // publishPlateToMqtt({
+    //   plateNumber,
+    //   timestamp,
+    //   cameraId: camera.cameraId,
+    //   cameraName: camera.cameraName,
+    //   action: gateResponse.action,
+    //   gates: gateResponse.targetGates,
+    //   vehicleFound: !!(vehicle || vehicleInfo),
+    // }).catch((err) => console.error("MQTT publish failed:", err));
 
     return NextResponse.json({
       success: true,
